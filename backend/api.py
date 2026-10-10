@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from .conversational_agents import call_data_agent
 from .mcp_tools import PROJECT_ID, search_entries, extract_entry_info
+from .chat_history import HISTORY_DATASET, get_conversation, list_conversations, save_turn
 from google.cloud import bigquery
 
 app = FastAPI(title="Knowledge Catalog SQL Agent", version="1.0.0")
@@ -25,6 +26,10 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     question: str
     dataset_id: str | None = None
+    session_id: str | None = Field(default=None, max_length=80)
+    conversation_id: str | None = Field(default=None, max_length=80)
+    turn_id: str | None = Field(default=None, max_length=80)
+    turn_index: int = Field(default=0, ge=0)
 
 class SearchRequest(BaseModel):
     query: str
@@ -34,6 +39,10 @@ class SearchRequest(BaseModel):
 class KnowledgeCatalogRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     dataset_id: str | None = None
+    session_id: str | None = Field(default=None, max_length=80)
+    conversation_id: str | None = Field(default=None, max_length=80)
+    turn_id: str | None = Field(default=None, max_length=80)
+    turn_index: int = Field(default=0, ge=0)
 
 class VisualizationRequest(BaseModel):
     question: str = Field(max_length=1000)
@@ -162,18 +171,118 @@ def _visualization_result(raw: dict, columns: list[str], rows: list[dict]) -> di
     }
 
 
+def _supervisor_intent(question: str) -> str:
+    """Choose a safe deterministic route before invoking the specialist agents."""
+    text = " ".join(question.lower().split())
+    catalog_terms = ("catalog", "metadata", "descriptions", "data dictionary", "knowledge gap")
+    if any(term in text for term in catalog_terms) and any(
+        term in text for term in ("update", "improve", "missing", "gap", "review", "fix", "document", "catalog")
+    ):
+        return "catalog"
+    overview_phrases = (
+        "what data can you provide", "what data do you have", "what data is available",
+        "what tables", "list tables", "show tables", "list datasets", "what datasets",
+        "show schema", "list columns", "what columns", "dataset overview",
+    )
+    if any(phrase in text for phrase in overview_phrases):
+        return "dataset_overview"
+    help_phrases = ("what can you do", "how can you help", "help me", "hello", "hi", "good morning", "good afternoon")
+    if text in help_phrases or any(phrase in text for phrase in help_phrases[:2]):
+        return "help"
+    return "analytics"
+
+
+def _supervisor_result(req: QueryRequest, intent: str, on_progress=None):
+    """Return help or BigQuery metadata responses without sending them to SQL generation."""
+    if intent == "help":
+        summary = (
+            "I can answer questions about your selected BigQuery dataset, analyze its data with SQL, "
+            "create charts from query results, and review catalog metadata. Try asking what tables are "
+            "available, requesting a data analysis, or asking me to review missing catalog descriptions."
+        )
+        rows, columns = [], []
+        analysis = {"question_understanding": req.question.strip(), "approach": "Intentra handled this as a general capability question."}
+    else:
+        client = bigquery.Client(project=PROJECT_ID)
+        if req.dataset_id:
+            dataset = client.get_dataset(req.dataset_id)
+            table_rows = []
+            for table in client.list_tables(dataset, page_size=100, timeout=15):
+                table_info = client.get_table(table.reference)
+                field_names = [field.name for field in table_info.schema]
+                table_rows.append({
+                    "table_name": table.table_id,
+                    "description": table_info.description or "",
+                    "columns": ", ".join(field_names),
+                })
+            rows = table_rows
+            columns = ["table_name", "description", "columns"]
+            summary = f"The {req.dataset_id} dataset has {len(rows)} tables. Here are the available tables, descriptions, and columns."
+            scope = req.dataset_id
+        else:
+            datasets = list(client.list_datasets(page_size=100, timeout=15))
+            rows = [{"dataset_id": item.dataset_id} for item in datasets]
+            columns = ["dataset_id"]
+            summary = f"I can see {len(rows)} BigQuery datasets in project {client.project}. Select a dataset to inspect its tables and columns."
+            scope = client.project
+        analysis = {"question_understanding": req.question.strip(), "approach": "Read BigQuery dataset and table metadata; no data query was run.", "data_scope": scope}
+    _progress(on_progress, "supervisor", "agent_complete", "Prepared a response without running an analytical SQL query.")
+    return {
+        "agent": "supervisor", "status": "success", "response_type": intent,
+        "question": req.question, "dataset_id": req.dataset_id, "summary": summary,
+        "data": {}, "columns": columns, "rows": rows, "row_count": len(rows),
+        "analysis": analysis, "sql": None, "visualization": None, "catalog_entries": [],
+        "error": None, "agent_response": {"agent": "supervisor", "status": "success", "message": summary, "data": {}},
+    }
+
+
 def _run_ask(req: QueryRequest, on_progress=None):
     """Route analysis through the saved SQL agent and resolve catalog gaps when reported."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
+    intent = _supervisor_intent(req.question)
+    _progress(on_progress, "supervisor", "agent_start", "Classifying the request and selecting the right specialist.")
+    if intent in ("help", "dataset_overview"):
+        try:
+            return _supervisor_result(req, intent, on_progress)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Intentra could not inspect BigQuery metadata: {exc}") from exc
+    if intent == "catalog":
+        _progress(on_progress, "supervisor", "agent_complete", "Routing this catalog request to the Knowledge Catalog agent.")
+        catalog = _run_catalog_agent(KnowledgeCatalogRequest(
+            question=req.question, dataset_id=req.dataset_id, session_id=req.session_id,
+            conversation_id=req.conversation_id, turn_id=req.turn_id, turn_index=req.turn_index,
+        ), on_progress)
+        summary = catalog.get("message") or "The Knowledge Catalog agent completed its review."
+        return {
+            **catalog, "response_type": "catalog", "summary": summary,
+            "columns": [], "rows": [], "row_count": 0, "sql": None,
+            "analysis": {"question_understanding": req.question.strip(), "approach": "Routed to the Knowledge Catalog agent for metadata review."},
+            "visualization": None, "catalog_entries": [], "error": None,
+        }
+    _progress(on_progress, "supervisor", "agent_complete", "Routing this analytical request to the SQL generation agent.")
+    prior_turns = []
+    if req.session_id and req.conversation_id:
+        try:
+            prior_turns = get_conversation(req.session_id, req.conversation_id)[-8:]
+        except Exception as exc:
+            _progress(on_progress, "supervisor", "agent_step", f"Could not load saved conversation context: {exc}")
     prompt = (
         "Answer the user's data question using the configured JSON response format. "
         "Include a data.analysis object with question_understanding, approach, data_scope, "
-        "transformations, result_interpretation, and assumptions_and_limitations. Give a concise, "
+        "transformations, result_interpretation, and assumptions_and_limitations. Also include "
+        "data.summary as a concise user-facing summary and data.key_findings as a list of 2 to 4 "
+        "important factual findings grounded in the returned rows. Give a concise, "
         "auditable explanation of the method and findings grounded in the executed SQL and returned "
         "rows; do not provide private chain-of-thought or unsupported claims. Keep SQL, columns, and "
         "rows in their existing data fields.\n\nUser question: " + req.question.strip()
     )
+    if prior_turns:
+        context = [
+            {"question": turn["question"], "answer": turn["result"].get("summary", "")}
+            for turn in prior_turns
+        ]
+        prompt += "\n\nRecent turns in this conversation for context (treat the latest user question as the request to answer):\n" + json.dumps(context, ensure_ascii=False)
     if req.dataset_id:
         prompt += f"\n\nSelected BigQuery dataset: {req.dataset_id}. Restrict analysis to this dataset."
     try:
@@ -183,7 +292,10 @@ def _run_ask(req: QueryRequest, on_progress=None):
         _progress(on_progress, "data_analyst", "agent_complete", "SQL agent returned its analysis and query results.")
         status = reply.get("status", "success")
         data = reply.get("data") if isinstance(reply.get("data"), dict) else {}
-        summary = reply.get("message") or raw.get("text") or ""
+        summary = data.get("summary") or reply.get("message") or raw.get("text") or ""
+        key_findings = data.get("key_findings") or []
+        if isinstance(key_findings, str):
+            key_findings = [key_findings]
         sql = data.get("sql") or raw.get("sql")
         columns = data.get("columns") or raw.get("columns") or []
         rows = data.get("rows") or raw.get("rows") or []
@@ -277,6 +389,7 @@ def _run_ask(req: QueryRequest, on_progress=None):
         error = summary if status in ("needs_information", "error") else None
         return {
             **reply,
+            "response_type": "analysis",
             "question": req.question,
             "dataset_id": req.dataset_id,
             "data": data,
@@ -285,6 +398,7 @@ def _run_ask(req: QueryRequest, on_progress=None):
             "rows": rows,
             "row_count": data.get("row_count", len(rows)),
             "summary": summary,
+            "key_findings": key_findings,
             "analysis": analysis,
             "catalog_entries": catalog_entries,
             "error": error,
@@ -301,12 +415,41 @@ def _run_ask(req: QueryRequest, on_progress=None):
 
 @app.post("/ask")
 def ask_question(req: QueryRequest):
-    return _run_ask(req)
+    return _run_ask_and_persist(req)
+
+
+def _run_ask_and_persist(req: QueryRequest, on_progress=None):
+    result = _run_ask(req, on_progress=on_progress)
+    if req.session_id and req.conversation_id and req.turn_id:
+        try:
+            save_turn(req.session_id, req.conversation_id, req.turn_id, req.turn_index, req.dataset_id, req.question, result)
+            result["history_saved"] = True
+        except Exception as exc:
+            result["history_saved"] = False
+            result["history_warning"] = f"The answer completed, but saving chat history failed: {exc}"
+    return result
 
 
 @app.post("/ask/stream")
 def ask_question_stream(req: QueryRequest):
-    return _sse_response(_run_ask, req)
+    return _sse_response(_run_ask_and_persist, req)
+
+
+@app.get("/history")
+def history_list(session_id: str, limit: int = 50):
+    try:
+        conversations = list_conversations(session_id, min(max(limit, 1), 100))
+        return {"conversations": conversations}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not load chat history: {exc}") from exc
+
+
+@app.get("/history/{conversation_id}")
+def history_conversation(conversation_id: str, session_id: str):
+    try:
+        return {"conversation_id": conversation_id, "turns": get_conversation(session_id, conversation_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not load this conversation: {exc}") from exc
 
 
 def _run_catalog_agent(req: KnowledgeCatalogRequest, on_progress=None):
@@ -327,6 +470,14 @@ def _run_catalog_agent(req: KnowledgeCatalogRequest, on_progress=None):
     )
     if req.dataset_id:
         prompt += f"\nSelected BigQuery dataset: {req.dataset_id}. Keep the review scoped to this dataset."
+    if req.session_id and req.conversation_id:
+        try:
+            previous = get_conversation(req.session_id, req.conversation_id)[-8:]
+            if previous:
+                context = [{"question": turn["question"], "answer": turn["result"].get("summary", "")} for turn in previous]
+                prompt += "\n\nRecent turns in this conversation for context:\n" + json.dumps(context, ensure_ascii=False)
+        except Exception as exc:
+            _progress(on_progress, "supervisor", "agent_step", f"Could not load saved conversation context: {exc}")
     try:
         _progress(on_progress, "knowledge_gap", "agent_start", "Calling the Knowledge Catalog agent.")
         raw = call_data_agent("knowledge_gap", prompt, on_progress=on_progress)
@@ -348,12 +499,32 @@ def _run_catalog_agent(req: KnowledgeCatalogRequest, on_progress=None):
 
 @app.post("/catalog-agent")
 def knowledge_catalog_agent(req: KnowledgeCatalogRequest):
-    return _run_catalog_agent(req)
+    return _run_catalog_agent_and_persist(req)
 
 
 @app.post("/catalog-agent/stream")
 def knowledge_catalog_agent_stream(req: KnowledgeCatalogRequest):
-    return _sse_response(_run_catalog_agent, req)
+    return _sse_response(_run_catalog_agent_and_persist, req)
+
+
+def _run_catalog_agent_and_persist(req: KnowledgeCatalogRequest, on_progress=None):
+    result = _run_catalog_agent(req, on_progress=on_progress)
+    if req.session_id and req.conversation_id and req.turn_id:
+        saved_result = {
+            **result,
+            "response_type": "catalog",
+            "summary": result.get("message") or "The Knowledge Catalog agent completed its review.",
+            "columns": [], "rows": [], "row_count": 0, "sql": None,
+            "analysis": {"question_understanding": req.question, "approach": "Routed to the Knowledge Catalog agent for metadata review."},
+            "visualization": None,
+        }
+        try:
+            save_turn(req.session_id, req.conversation_id, req.turn_id, req.turn_index, req.dataset_id, req.question, saved_result)
+            result["history_saved"] = True
+        except Exception as exc:
+            result["history_saved"] = False
+            result["history_warning"] = f"The catalog review completed, but saving chat history failed: {exc}"
+    return result
 
 @app.get("/datasets")
 def list_datasets():
@@ -363,12 +534,112 @@ def list_datasets():
         datasets = [
             {"dataset_id": dataset.dataset_id}
             for dataset in client.list_datasets(page_size=100, timeout=10)
+            if dataset.dataset_id != HISTORY_DATASET
         ]
         return {"project_id": client.project, "datasets": datasets}
     except Exception as exc:
         raise HTTPException(
             status_code=502,
             detail=f"Could not list BigQuery datasets for project {PROJECT_ID}: {exc}",
+        ) from exc
+
+@app.get("/datasets/{dataset_id}/context")
+def dataset_context(dataset_id: str):
+    """Return real BigQuery table metadata and schema-based starter questions."""
+    try:
+        client = bigquery.Client(project=PROJECT_ID)
+        dataset = client.get_dataset(f"{client.project}.{dataset_id}")
+        tables = list(client.list_tables(dataset.reference, timeout=15))
+        schemas = []
+        for table_ref in tables[:40]:
+            try:
+                table = client.get_table(table_ref.reference)
+            except Exception:
+                continue
+            fields = [
+                {"name": field.name, "type": field.field_type}
+                for field in table.schema
+                if field.field_type.upper() not in {"RECORD", "STRUCT"}
+            ]
+            schemas.append({"name": table.table_id, "fields": fields})
+
+        def readable(value: str) -> str:
+            return value.replace("_", " ").strip()
+
+        questions = []
+        seen = set()
+
+        def add_question(label: str, description: str, question: str, kind: str):
+            if question not in seen and len(questions) < 3:
+                seen.add(question)
+                questions.append({"label": label, "description": description, "question": question, "kind": kind})
+
+        for table in schemas:
+            fields = table["fields"]
+            numeric = [field["name"] for field in fields if field["type"].upper() in {"INTEGER", "INT64", "FLOAT", "FLOAT64", "NUMERIC", "BIGNUMERIC"}]
+            temporal = [field["name"] for field in fields if field["type"].upper() in {"DATE", "DATETIME", "TIMESTAMP"} or any(word in field["name"].lower() for word in ("date", "time", "month", "year"))]
+            categorical = [field["name"] for field in fields if field["name"] not in numeric and field["name"] not in temporal and field["type"].upper() not in {"BOOLEAN", "BOOL"}]
+            table_name = readable(table["name"])
+            if temporal and numeric:
+                add_question(
+                    f"Trend in {readable(numeric[0])}",
+                    "See how a metric changes over time.",
+                    f"How has {readable(numeric[0])} changed over {readable(temporal[0])} in {table_name}?",
+                    "trend",
+                )
+            if categorical and numeric:
+                add_question(
+                    f"Compare by {readable(categorical[0])}",
+                    "Compare a measure across real data groups.",
+                    f"Compare {readable(numeric[0])} across {readable(categorical[0])} in {table_name}.",
+                    "compare",
+                )
+            if categorical:
+                add_question(
+                    f"Break down {readable(categorical[0])}",
+                    "Find the most common category values.",
+                    f"What are the most common {readable(categorical[0])} values in {table_name}?",
+                    "breakdown",
+                )
+            if numeric:
+                add_question(
+                    f"Explore {readable(numeric[0])}",
+                    "Surface the records with the largest values.",
+                    f"Which records in {table_name} have the highest {readable(numeric[0])}?",
+                    "explore",
+                )
+            add_question(
+                f"Explore {table_name}",
+                "Get a quick count of the records.",
+                f"How many records are in {table_name}?",
+                "count",
+            )
+            add_question(
+                f"Preview {table_name}",
+                "Inspect a small sample of the data.",
+                f"Show a sample of 10 records from {table_name}.",
+                "preview",
+            )
+            add_question(
+                f"Review {table_name}",
+                "Explore the real fields and their data types.",
+                f"What fields and data types are available in {table_name}?",
+                "schema",
+            )
+            if len(questions) == 3:
+                break
+
+        return {
+            "project_id": client.project,
+            "dataset_id": dataset.dataset_id,
+            "table_count": len(tables),
+            "tables_scanned": len(schemas),
+            "suggested_questions": questions,
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Could not read BigQuery metadata for {PROJECT_ID}.{dataset_id}: {exc}",
         ) from exc
 
 @app.post("/search")

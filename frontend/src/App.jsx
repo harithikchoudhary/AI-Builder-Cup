@@ -11,11 +11,7 @@ import {
   Scatter, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Legend,
 } from 'recharts'
 
-const examples = [
-  { icon: BarChart3, label: 'Monthly Health claim trends', question: 'Calculate the monthly average claim amount and percentage change from the previous month for Health claims.' },
-  { icon: Trophy, label: 'Largest claims', question: 'Show the top 5 claims by amount with their status.' },
-  { icon: Layers3, label: 'Status breakdown', question: 'Count claims by claim_type and claim_status.' },
-]
+const suggestionIcons = { trend: Activity, compare: BarChart3, breakdown: Layers3, explore: Trophy, count: Table2, preview: Table2 }
 
 async function post(path, data) {
   const response = await fetch(path, {
@@ -73,6 +69,18 @@ function downloadCsv(rows, columns) {
   URL.revokeObjectURL(url)
 }
 
+function makeId() {
+  return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function browserSessionId() {
+  try {
+    let value = localStorage.getItem('intentra-session-id')
+    if (!value) { value = makeId(); localStorage.setItem('intentra-session-id', value) }
+    return value
+  } catch { return makeId() }
+}
+
 function Brand() {
   return <div className="brand"><div className="brand-icon"><Sparkles size={21} strokeWidth={2.2} /></div><div><strong>Intentra</strong><span>ASK BETTER. SEE FURTHER.</span></div></div>
 }
@@ -88,19 +96,19 @@ function Sidebar({ view, setView, history, selectHistory, newQuestion, open, clo
         <span className="nav-caption">WORKSPACE</span>
         <div className="sidebar-dataset">
           <span className="dataset-caption">ACTIVE DATASET</span>
-          <button className="dataset-picker" type="button" onClick={() => setDatasetMenuOpen((value) => !value)} aria-expanded={datasetMenuOpen} aria-haspopup="listbox" disabled={datasetLoading || datasets.length === 0}>
+          <button className="dataset-picker" type="button" title={selectedDataset ? `Project: ${projectId}\nDataset: ${selectedDataset.dataset_id}` : 'Choose a BigQuery dataset'} onClick={() => setDatasetMenuOpen((value) => !value)} aria-label={selectedDataset ? `Active BigQuery dataset ${selectedDataset.dataset_id}, project ${projectId}. Open dataset selector.` : 'Select a BigQuery dataset'} aria-expanded={datasetMenuOpen} aria-haspopup="listbox" disabled={datasetLoading || datasets.length === 0}>
             <span className="dataset-picker-icon"><Database size={17} /></span>
-            <span className="dataset-picker-copy"><small>BIGQUERY SOURCE</small><strong>{datasetLoading ? 'Loading datasets…' : selectedDataset?.dataset_id || 'Select a dataset'}</strong><em>{selectedDataset ? projectId : 'Choose a source to begin'}</em></span>
+            <span className="dataset-picker-copy"><small>BIGQUERY DATASET</small><strong>{datasetLoading ? 'Loading datasets…' : selectedDataset?.dataset_id || 'Select a dataset'}</strong><em>{selectedDataset ? `Project: ${projectId}` : 'Choose a source to begin'}</em></span>
             <ChevronDown className={datasetMenuOpen ? 'dataset-chevron open' : 'dataset-chevron'} size={15} />
           </button>
-          {datasetMenuOpen && <div className="dataset-menu" role="listbox" aria-label="Choose a BigQuery dataset">{datasets.map((dataset) => <button key={dataset.dataset_id} type="button" role="option" aria-selected={dataset.dataset_id === datasetId} className={dataset.dataset_id === datasetId ? 'selected' : ''} onClick={() => { onDatasetChange(dataset.dataset_id); setDatasetMenuOpen(false); close() }}><Database size={14} /><span>{dataset.dataset_id}<small>{projectId}</small></span>{dataset.dataset_id === datasetId && <Check size={14} />}</button>)}</div>}
+          {datasetMenuOpen && <div className="dataset-menu" role="listbox" aria-label="Choose a BigQuery dataset">{datasets.map((dataset) => <button key={dataset.dataset_id} type="button" role="option" aria-selected={dataset.dataset_id === datasetId} className={dataset.dataset_id === datasetId ? 'selected' : ''} title={`Project: ${projectId}\nDataset: ${dataset.dataset_id}`} onClick={() => { onDatasetChange(dataset.dataset_id); setDatasetMenuOpen(false); close() }}><Database size={14} /><span><strong>{dataset.dataset_id}</strong><small>Project: {projectId}</small></span>{dataset.dataset_id === datasetId && <Check size={14} />}</button>)}</div>}
           {datasetError && <span className="sidebar-dataset-error" title={datasetError}>Could not load datasets</span>}
         </div>
         <button className="new-chat-button" onClick={() => { newQuestion(); close() }}><Plus size={17} /> New chat <span>⌘ K</span></button>
         <button className={`nav-item ${view === 'ask' ? 'selected' : ''}`} onClick={() => { setView('ask'); close() }}><MessageSquareText size={19} /> Ask your data <ArrowRight className="nav-end" size={16} /></button>
         <button className={`nav-item ${view === 'catalog' ? 'selected' : ''}`} onClick={() => { setView('catalog'); close() }}><Database size={19} /> Catalog explorer <ArrowRight className="nav-end" size={16} /></button>
         <button className={`nav-item ${view === 'knowledge-agent' ? 'selected' : ''}`} onClick={() => { setView('knowledge-agent'); close() }}><Sparkles size={19} /> Catalog agent <ArrowRight className="nav-end" size={16} /></button>
-        <span className="nav-caption recent-label">RECENT QUERIES</span>
+        <span className="nav-caption recent-label">CHAT HISTORY</span>
         {history.length === 0 ? <div className="empty-history">Your chats will appear here.</div> : history.map((entry, index) => <button key={entry.id} className="history-item" onClick={() => { selectHistory(index); close() }} title={entry.question}>{entry.mode === 'knowledge-agent' ? <Sparkles size={16} /> : <Activity size={16} />}<span>{entry.question}</span></button>)}
       </div>
       <div className="side-footer"><div className="cloud-mark"><Cloud size={20} /><span>Powered by<br /><strong>Google Cloud</strong></span></div><div className="event-rule"><i /><i /><i /><i /></div></div>
@@ -114,11 +122,51 @@ function Status({ state }) {
 
 function ProgressTimeline({ events = [] }) {
   const activeIndex = events.findLastIndex((event) => event.kind !== 'agent_complete')
-  return <ol className="progress-timeline">{events.map((event, index) => <li key={`${event.agent}-${event.message}-${index}`} className={index === activeIndex ? 'active' : ''}><span className="progress-mark">{event.kind === 'agent_complete' || index < activeIndex ? <Check size={12} /> : <LoaderCircle className="spin" size={12} />}</span><span><small>{event.agent === 'data_analyst' ? 'SQL AGENT' : event.agent === 'visualization' ? 'VISUALIZATION AGENT' : event.agent === 'knowledge_gap' ? 'KNOWLEDGE CATALOG AGENT' : 'INTENTRA'}</small>{event.message}</span></li>)}</ol>
+  return <ol className="progress-timeline">{events.map((event, index) => <li key={`${event.agent}-${event.message}-${index}`} className={index === activeIndex ? 'active' : ''}><span className="progress-mark">{event.kind === 'agent_complete' || index < activeIndex ? <Check size={12} /> : <LoaderCircle className="spin" size={12} />}</span><span><small>{event.agent === 'supervisor' ? 'SUPERVISOR' : event.agent === 'data_analyst' ? 'SQL AGENT' : event.agent === 'visualization' ? 'VISUALIZATION AGENT' : event.agent === 'knowledge_gap' ? 'KNOWLEDGE CATALOG AGENT' : 'INTENTRA'}</small>{event.message}</span></li>)}</ol>
 }
 
 function Table({ rows, columns }) {
   return <div className="table-scroll"><table><thead><tr>{columns.map((column) => <th key={column}>{column.replaceAll('_', ' ')}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{columns.map((column) => <td key={column} title={String(row[column] ?? '')}>{row[column] == null ? '—' : typeof row[column] === 'object' ? JSON.stringify(row[column]) : String(row[column])}</td>)}</tr>)}</tbody></table></div>
+}
+
+function InlineMarkdown({ text }) {
+  const parts = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g).filter(Boolean)
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={index}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('`') && part.endsWith('`')) return <code key={index}>{part.slice(1, -1)}</code>
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={index}>{part.slice(1, -1)}</em>
+    return <span key={index}>{part}</span>
+  })
+}
+
+function MarkdownContent({ text }) {
+  const lines = String(text || '').split(/\r?\n/)
+  const blocks = []
+  for (let index = 0; index < lines.length;) {
+    const line = lines[index].trim()
+    if (!line) { index += 1; continue }
+    const heading = line.match(/^(#{1,4})\s+(.+)$/)
+    if (heading) {
+      blocks.push({ type: 'heading', level: heading[1].length, text: heading[2] })
+      index += 1
+      continue
+    }
+    if (/^[-*+]\s+/.test(line)) {
+      const items = []
+      while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) items.push(lines[index++].trim().replace(/^[-*+]\s+/, ''))
+      blocks.push({ type: 'list', items })
+      continue
+    }
+    const paragraph = [line]
+    index += 1
+    while (index < lines.length && lines[index].trim() && !/^(#{1,4})\s+/.test(lines[index].trim()) && !/^\s*[-*+]\s+/.test(lines[index])) paragraph.push(lines[index++].trim())
+    blocks.push({ type: 'paragraph', text: paragraph.join(' ') })
+  }
+  return <div className="assistant-markdown">{blocks.map((block, index) => block.type === 'heading'
+    ? <h3 key={index}><InlineMarkdown text={block.text} /></h3>
+    : block.type === 'list'
+      ? <ul key={index}>{block.items.map((item, itemIndex) => <li key={itemIndex}><InlineMarkdown text={item} /></li>)}</ul>
+      : <p key={index}><InlineMarkdown text={block.text} /></p>)}</div>
 }
 
 const chartLabels = { bar: 'Bar', line: 'Line', area: 'Area', pie: 'Pie', scatter: 'Scatter', radar: 'Radar' }
@@ -195,7 +243,7 @@ function AnalysisValue({ value }) {
   if (value == null || value === '') return null
   if (Array.isArray(value)) return <ul>{value.map((item, index) => <li key={index}><AnalysisValue value={item} /></li>)}</ul>
   if (typeof value === 'object') return <dl>{Object.entries(value).map(([key, item]) => <div key={key}><dt>{key.replaceAll('_', ' ')}</dt><dd><AnalysisValue value={item} /></dd></div>)}</dl>
-  return <p>{String(value)}</p>
+  return <p><InlineMarkdown text={String(value)} /></p>
 }
 
 function SqlAnalysis({ analysis }) {
@@ -226,6 +274,22 @@ function Answer({ entry }) {
   const rows = result.rows || []
   const columns = result.columns || (rows[0] ? Object.keys(rows[0]) : [])
   const canChart = rows.length > 0 && columns.length > 0
+  const responseType = result.response_type || 'analysis'
+  const tabs = responseType === 'analysis' ? ['Result', 'Details Analysis', 'View SQL with Table']
+    : responseType === 'help' ? ['Result'] : ['Result', 'Details Analysis']
+  const fullSummary = result.summary || (rows.length ? `Query completed with ${result.row_count ?? rows.length} results. Explore the data below.` : 'The query ran successfully but returned no rows.')
+  const reportHeading = fullSummary.search(/^\s*#{1,4}\s*(?:Data\s+)?Analysis\s+Report\s*$/im)
+  const summary = reportHeading > 0 ? fullSummary.slice(0, reportHeading).trim() : fullSummary
+  const keyFindings = result.key_findings?.length
+    ? result.key_findings
+    : result.analysis?.key_findings || result.analysis?.result_interpretation
+  const keyFindingItems = Array.isArray(keyFindings)
+    ? keyFindings
+    : typeof keyFindings === 'string'
+      ? keyFindings.split(/(?<=[.!?])\s+(?=[A-Z])/).map((finding) => finding.trim()).filter(Boolean)
+      : []
+  const citationData = result.citations || result.sources || result.catalog_entries || []
+  const citations = Array.isArray(citationData) ? citationData : [citationData]
 
   async function copySql() {
     try { await navigator.clipboard.writeText(result.sql); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch { setCopied(false) }
@@ -233,14 +297,20 @@ function Answer({ entry }) {
 
   return <section className="answer" aria-live="polite">
     {result.error ? <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> COULD NOT COMPLETE</div><div className="error-panel"><CircleAlert size={20} /><span>{result.error}</span></div></div></div> : <>
-      <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> DATA INSIGHT</div><div className="summary-block"><p>{result.summary || (rows.length ? `Query completed with ${result.row_count ?? rows.length} results. Explore the data below.` : 'The query ran successfully but returned no rows.')}</p></div></div></div>
-      <nav className="answer-tabs" aria-label="Answer sections" role="tablist">{['Result', 'Charts', 'Details Analysis', 'View SQL with Table'].map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab === 'Charts' && <BarChart3 size={15} />}{tab === 'Details Analysis' && <Compass size={15} />}{tab === 'View SQL with Table' && <Code2 size={15} />}{tab}</button>)}</nav>
-      {activeTab === 'Result' && <section className="answer-panel" role="tabpanel">
-        <div className="result-heading"><div><span className="block-label"><Table2 size={16} /> QUERY RESULTS</span><h3>{result.row_count ?? rows.length} {rows.length === 1 ? 'row' : 'rows'} returned</h3></div>{rows.length > 0 && <button className="subtle-action" onClick={() => downloadCsv(rows, columns)}><ArrowDownToLine size={17} /> Export CSV</button>}</div>
-        <div className="result-frame">{rows.length === 0 ? <div className="no-results">No matching rows found for this query.</div> : <Table rows={rows} columns={columns} />}</div>
+      {responseType === 'analysis' ? <div className="answer-brand"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-label">INTENTRA <span>·</span> DATA INSIGHT</div></div> : <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> {responseType === 'catalog' ? 'KNOWLEDGE CATALOG' : responseType === 'dataset_overview' ? 'DATA CATALOG' : 'ASSISTANT'}</div><div className="summary-block"><MarkdownContent text={summary} /></div>{result.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{result.history_warning}</span></div>}</div></div>}
+      {tabs.length > 1 && <nav className="answer-tabs" aria-label="Answer sections" role="tablist">{tabs.map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab === 'Charts' && <BarChart3 size={15} />}{tab === 'Details Analysis' && <Compass size={15} />}{tab === 'View SQL with Table' && <Code2 size={15} />}{tab}</button>)}</nav>}
+      {activeTab === 'Result' && responseType !== 'help' && <section className="answer-panel" role="tabpanel">
+        <div className="result-overview-heading"><span className="block-label"><Table2 size={16} /> RESULT</span></div>
+        <section className="result-summary-card"><h3>Summary</h3><MarkdownContent text={summary} /></section>
+        {keyFindingItems.length > 0 && <section className="key-findings-card"><h3>Key Findings</h3><AnalysisValue value={keyFindingItems} /></section>}
+        {citations.length > 0 && <section className="response-citations"><h3>Sources</h3><ul>{citations.map((citation, index) => { const title = typeof citation === 'string' ? citation : citation?.displayName || citation?.title || citation?.name || citation?.fqn || `Source ${index + 1}`; const detail = typeof citation === 'string' ? '' : citation?.fqn || citation?.uri || citation?.location; return <li key={`${title}-${index}`}><Database size={14} /><span><strong>{title}</strong>{detail && <small>{detail}</small>}</span></li> })}</ul></section>}
+        {reportHeading > 0 && <details className="full-agent-response"><summary>View full agent response</summary><MarkdownContent text={fullSummary} /></details>}
+        {result.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{result.history_warning}</span></div>}
+        {responseType === 'analysis' && <section className="result-charts" aria-label="Charts for this result"><div className="result-section-heading"><span><BarChart3 size={16} /> CHARTS</span><small>Visual views of the same query results</small></div>{canChart ? <VisualizationAgent question={entry.question} rows={rows} columns={columns} initialAnalysis={result.visualization} /> : <div className="no-results">No chartable rows were returned for this question.</div>}</section>}
+        {rows.length > 0 && <section className="result-data-section"><div className="result-heading"><div><span className="block-label"><Table2 size={16} /> {responseType === 'dataset_overview' ? 'AVAILABLE DATA' : 'SUPPORTING DATA'}</span><h3>{result.row_count ?? rows.length} {responseType === 'dataset_overview' ? 'tables / items' : rows.length === 1 ? 'row' : 'rows'} returned</h3></div><button className="subtle-action" onClick={() => downloadCsv(rows, columns)}><ArrowDownToLine size={17} /> Export CSV</button></div><div className="result-frame"><Table rows={rows} columns={columns} /></div></section>}
+        {responseType === 'catalog' && <div className="catalog-agent-fields">{Object.entries(result.data || {}).filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0)).map(([key, value]) => <article key={key}><h4>{key.replaceAll('_', ' ')}</h4><AnalysisValue value={value} /></article>)}</div>}
       </section>}
-      {activeTab === 'Charts' && <section className="answer-panel" role="tabpanel">{canChart ? <VisualizationAgent question={entry.question} rows={rows} columns={columns} initialAnalysis={result.visualization} /> : <div className="no-results">There are no rows to visualize yet.</div>}</section>}
-      {activeTab === 'Details Analysis' && <section className="answer-panel" role="tabpanel"><SqlAnalysis analysis={result.analysis} />{result.catalog_entries?.length > 0 && <details className="assets-details"><summary><span><Database size={18} /> Catalog assets consulted</span><ChevronDown size={18} /></summary><div className="asset-list">{result.catalog_entries.map((asset) => <div key={asset.name}><Database size={15} /><span>{asset.displayName || asset.fqn}<small>{asset.fqn}</small></span><em>{asset.system}</em></div>)}</div></details>}</section>}
+      {activeTab === 'Details Analysis' && <section className="answer-panel" role="tabpanel"><SqlAnalysis analysis={result.analysis} />{responseType === 'dataset_overview' && <div className="sql-analysis"><div className="sql-analysis-heading"><span><Compass size={16} /> DATASET OVERVIEW</span></div><div className="sql-analysis-grid"><article className="sql-analysis-card wide"><h4>Metadata source</h4><p>Read directly from BigQuery dataset and table metadata. No analytical query was executed.</p></article></div></div>}{result.catalog_entries?.length > 0 && <details className="assets-details"><summary><span><Database size={18} /> Catalog assets consulted</span><ChevronDown size={18} /></summary><div className="asset-list">{result.catalog_entries.map((asset) => <div key={asset.name}><Database size={15} /><span>{asset.displayName || asset.fqn}<small>{asset.fqn}</small></span><em>{asset.system}</em></div>)}</div></details>}</section>}
       {activeTab === 'View SQL with Table' && <section className="answer-panel sql-table-panel" role="tabpanel"><details className="sql-details" open><summary><span><Code2 size={18} /> Generated SQL</span><ChevronDown size={18} /></summary><div className="code-toolbar"><span>BIGQUERY SQL</span><button aria-label={copied ? 'Copied SQL' : 'Copy SQL'} title={copied ? 'Copied' : 'Copy SQL'} onClick={copySql}>{copied ? <Check size={16} /> : <Copy size={16} />}</button></div><pre><code>{result.sql}</code></pre></details><div className="result-heading"><div><span className="block-label"><Table2 size={16} /> QUERY RESULTS</span><h3>{result.row_count ?? rows.length} {rows.length === 1 ? 'row' : 'rows'} returned</h3></div></div><div className="result-frame">{rows.length ? <Table rows={rows} columns={columns} /> : <div className="no-results">No matching rows found for this query.</div>}</div></section>}
     </>}
   </section>
@@ -253,7 +323,7 @@ function CatalogAgentResult({ entry }) {
   const data = response.data && typeof response.data === 'object' ? response.data : {}
   const fields = Object.entries(data).filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0))
   const status = response.status || 'success'
-  return <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> KNOWLEDGE CATALOG AGENT <i className={`catalog-agent-status ${status}`}>{status.replaceAll('_', ' ')}</i></div><div className="catalog-agent-result"><p className="catalog-agent-message">{response.message || 'The Knowledge Catalog Agent completed its review.'}</p>{fields.length > 0 && <div className="catalog-agent-fields">{fields.map(([key, value]) => <article key={key}><h4>{key.replaceAll('_', ' ')}</h4><AnalysisValue value={value} /></article>)}</div>}</div></div></div>
+  return <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> KNOWLEDGE CATALOG AGENT <i className={`catalog-agent-status ${status}`}>{status.replaceAll('_', ' ')}</i></div><div className="catalog-agent-result"><p className="catalog-agent-message">{response.message || 'The Knowledge Catalog Agent completed its review.'}</p>{response.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{response.history_warning}</span></div>}{fields.length > 0 && <div className="catalog-agent-fields">{fields.map(([key, value]) => <article key={key}><h4>{key.replaceAll('_', ' ')}</h4><AnalysisValue value={value} /></article>)}</div>}</div></div></div>
 }
 
 function CatalogAgentWorkspace({ datasetId, entry, onSubmit }) {
@@ -280,6 +350,8 @@ function CatalogAgentWorkspace({ datasetId, entry, onSubmit }) {
 function App() {
   const [view, setView] = useState('ask')
   const [history, setHistory] = useState([])
+  const [sessionId] = useState(browserSessionId)
+  const [conversationId, setConversationId] = useState(makeId)
   const [selected, setSelected] = useState(null)
   const [activeQuestion, setActiveQuestion] = useState('')
   const [catalogAgentEntry, setCatalogAgentEntry] = useState(null)
@@ -297,6 +369,8 @@ function App() {
   const [datasetId, setDatasetId] = useState('')
   const [datasetLoading, setDatasetLoading] = useState(true)
   const [datasetError, setDatasetError] = useState('')
+  const [datasetContext, setDatasetContext] = useState(null)
+  const [datasetContextLoading, setDatasetContextLoading] = useState(false)
 
   useEffect(() => {
     fetch('/health').then((response) => setConnection(response.ok ? 'online' : 'offline')).catch(() => setConnection('offline'))
@@ -311,6 +385,42 @@ function App() {
     }).catch((error) => setDatasetError(error.message)).finally(() => setDatasetLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (!datasetId) { setDatasetContext(null); return undefined }
+    let cancelled = false
+    setDatasetContext(null)
+    setDatasetContextLoading(true)
+    fetch(`/datasets/${encodeURIComponent(datasetId)}/context`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Dataset metadata request failed (${response.status})`)
+        return response.json()
+      })
+      .then((data) => { if (!cancelled) setDatasetContext(data) })
+      .catch(() => { if (!cancelled) setDatasetContext(null) })
+      .finally(() => { if (!cancelled) setDatasetContextLoading(false) })
+    return () => { cancelled = true }
+  }, [datasetId])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/history?session_id=${encodeURIComponent(sessionId)}`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Chat history is unavailable.')
+        return response.json()
+      })
+      .then(async ({ conversations = [] }) => {
+        const restored = await Promise.all(conversations.map(async (conversation) => {
+          const response = await fetch(`/history/${encodeURIComponent(conversation.conversation_id)}?session_id=${encodeURIComponent(sessionId)}`)
+          if (!response.ok) return { ...conversation, turns: [] }
+          const data = await response.json()
+          return { ...conversation, id: conversation.conversation_id, turns: data.turns || [] }
+        }))
+        if (!cancelled) setHistory(restored)
+      })
+      .catch(() => { if (!cancelled) setHistory([]) })
+    return () => { cancelled = true }
+  }, [sessionId])
+
   async function ask(value) {
     const text = value.trim()
     if (!text || loading) return
@@ -319,17 +429,24 @@ function App() {
     setActiveQuestion(text)
     setLoading(true)
     setProgress([{ agent: 'intentra', kind: 'agent_start', message: 'Starting the agent workflow.' }])
-    setSelected(null)
+    const activeConversationId = conversationId || makeId()
+    const existing = selected?.conversation_id === activeConversationId ? selected : null
+    const turnId = makeId()
+    const turnIndex = existing?.turns?.length || 0
+    setConversationId(activeConversationId)
     try {
-      const result = await postStream('/ask/stream', { question: text, dataset_id: datasetId }, (event) => {
+      const result = await postStream('/ask/stream', { question: text, dataset_id: datasetId, session_id: sessionId, conversation_id: activeConversationId, turn_id: turnId, turn_index: turnIndex }, (event) => {
         setProgress((previous) => previous.at(-1)?.message === event.message ? previous : [...previous, event].slice(-8))
       })
-      const entry = { id: Date.now(), question: text, result }
-      setHistory((previous) => [entry, ...previous])
-      setSelected(entry)
+      const turn = { id: turnId, question: text, result }
+      const conversation = { ...(existing || {}), id: activeConversationId, conversation_id: activeConversationId, dataset_id: datasetId, question: text, turns: [...(existing?.turns || []), turn] }
+      setHistory((previous) => [conversation, ...previous.filter((entry) => entry.conversation_id !== activeConversationId)])
+      setSelected(conversation)
     } catch (error) {
-      setSelected({ id: Date.now(), question: text, result: { error: error.message } })
-    } finally { setLoading(false) }
+      const turn = { id: turnId, question: text, result: { error: error.message } }
+      const conversation = { ...(existing || {}), id: activeConversationId, conversation_id: activeConversationId, question: text, turns: [...(existing?.turns || []), turn] }
+      setSelected(conversation)
+    } finally { setActiveQuestion(''); setLoading(false) }
   }
 
   async function askCatalogAgent(value) {
@@ -337,23 +454,29 @@ function App() {
     if (!text || catalogAgentEntry?.pending || !datasetId) return
     setView('knowledge-agent')
     setSelected(null)
-    const pending = { id: Date.now(), mode: 'knowledge-agent', question: text, pending: true, progress: [{ agent: 'knowledge_gap', kind: 'agent_start', message: 'Starting the Knowledge Catalog review.' }] }
+    const activeConversationId = conversationId || makeId()
+    const existing = history.find((entry) => entry.conversation_id === activeConversationId)
+    const turnId = makeId()
+    const turnIndex = existing?.turns?.length || 0
+    setConversationId(activeConversationId)
+    const pending = { id: turnId, mode: 'knowledge-agent', question: text, pending: true, progress: [{ agent: 'knowledge_gap', kind: 'agent_start', message: 'Starting the Knowledge Catalog review.' }] }
     let latestProgress = pending.progress
     setCatalogAgentEntry(pending)
-    setHistory((previous) => [pending, ...previous])
     try {
-      const response = await postStream('/catalog-agent/stream', { question: text, dataset_id: datasetId }, (event) => {
+      const response = await postStream('/catalog-agent/stream', { question: text, dataset_id: datasetId, session_id: sessionId, conversation_id: activeConversationId, turn_id: turnId, turn_index: turnIndex }, (event) => {
         latestProgress = [...latestProgress, event].slice(-8)
         setCatalogAgentEntry((current) => current?.id === pending.id ? { ...current, progress: latestProgress } : current)
-        setHistory((previous) => previous.map((entry) => entry.id === pending.id ? { ...entry, progress: latestProgress } : entry))
       })
       const completed = { ...pending, pending: false, progress: latestProgress, response }
       setCatalogAgentEntry(completed)
-      setHistory((previous) => previous.map((entry) => entry.id === pending.id ? completed : entry))
+      const saved = { ...response, response_type: 'catalog', summary: response.message || 'The Knowledge Catalog agent completed its review.', columns: [], rows: [], row_count: 0, analysis: { question_understanding: text, approach: 'Routed to the Knowledge Catalog agent for metadata review.' }, sql: null, visualization: null }
+      const turn = { id: turnId, question: text, result: saved }
+      const conversation = { ...(existing || {}), id: activeConversationId, conversation_id: activeConversationId, dataset_id: datasetId, question: text, turns: [...(existing?.turns || []), turn] }
+      setHistory((previous) => [conversation, ...previous.filter((entry) => entry.conversation_id !== activeConversationId)])
+      setSelected(conversation)
     } catch (error) {
       const failed = { ...pending, pending: false, progress: latestProgress, error: error.message }
       setCatalogAgentEntry(failed)
-      setHistory((previous) => previous.map((entry) => entry.id === pending.id ? failed : entry))
     }
   }
 
@@ -374,20 +497,21 @@ function App() {
   }
 
   return <div className="app-shell">
-    <Sidebar view={view} setView={setView} history={history} selectHistory={(index) => { const entry = history[index]; if (entry.mode === 'knowledge-agent') { setCatalogAgentEntry(entry); setView('knowledge-agent') } else { setSelected(entry); setActiveQuestion(entry.question); setView('ask') } }} newQuestion={() => { setSelected(null); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion(''); setView('ask') }} open={menuOpen} close={() => setMenuOpen(false)} datasets={datasets} datasetId={datasetId} projectId={projectId} datasetLoading={datasetLoading} datasetError={datasetError} onDatasetChange={(id) => { setDatasetId(id); setSelected(null); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion(''); setView('ask') }} />
+    <Sidebar view={view} setView={setView} history={history} selectHistory={(index) => { const entry = history[index]; if (entry.mode === 'knowledge-agent') { setCatalogAgentEntry(entry); setView('knowledge-agent') } else { setSelected(entry); setConversationId(entry.conversation_id); setActiveQuestion(''); setView('ask') } }} newQuestion={() => { setSelected(null); setConversationId(makeId()); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion(''); setView('ask') }} open={menuOpen} close={() => setMenuOpen(false)} datasets={datasets} datasetId={datasetId} projectId={projectId} datasetLoading={datasetLoading} datasetError={datasetError} onDatasetChange={(id) => { setDatasetId(id); setSelected(null); setConversationId(makeId()); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion(''); setView('ask') }} />
     <main className="main-panel">
       <header className="topbar"><div className="top-left"><button className="icon-button mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(true)}><Menu size={22} /></button><span className="breadcrumb"><span className="breadcrumb-product">INTENTRA</span><span>/</span> {view === 'ask' ? 'DATA CHAT' : view === 'knowledge-agent' ? 'KNOWLEDGE CATALOG AGENT' : 'CATALOG EXPLORER'}</span></div><div className="top-right"><Status state={connection} /><div className="top-avatar" aria-label="Intentra"><Sparkles size={16} /></div></div></header>
       <div className={`content ${view !== 'catalog' ? 'chat-content' : ''}`}>
         {view === 'catalog' && <div className="event-banner"><div className="banner-image" /><div className="banner-overlay" /><div className="banner-content"><span className="event-tag"><Trophy size={14} /> INTENTRA KNOWLEDGE STUDIO</span><h1>Know your data.<br /><em>Know your next move.</em></h1><div className="banner-bottom"><span>Intentra</span><span className="banner-separator" /><span>Built on Google Cloud</span></div></div><span className="banner-deco">01 / DISCOVER</span></div>}
         {view === 'ask' ? <>
           <section className={`chat-workspace ${!selected && !activeQuestion ? 'chat-workspace-empty' : ''}`}>
-            {!selected && !activeQuestion && <div className="chat-welcome"><span className="welcome-badge"><Sparkles size={14} /> INTENTRA DATA COPILOT</span><h2>Ask better.<br /><em>See further.</em></h2><p>{datasetId ? 'Your data has a story. Ask a question and Intentra will help you uncover it.' : 'Choose a dataset from the left sidebar, then ask Intentra a question about your data.'}</p></div>}
+            {!selected && !activeQuestion && <div className="chat-welcome"><span className="welcome-badge"><Sparkles size={14} /> INTENTRA DATA COPILOT</span><h2>Ask better.<br /><em>See further.</em></h2><p>{datasetId ? 'Your data has a story. Ask a question and Intentra will help you uncover it.' : 'Choose a dataset from the left sidebar, then ask Intentra a question about your data.'}</p>{datasetId && datasetContext && <div className="welcome-dataset-context"><Database size={15} /><strong>{datasetContext.dataset_id}</strong><span>{datasetContext.table_count} {datasetContext.table_count === 1 ? 'table' : 'tables'}</span><small>{datasetContext.project_id}</small></div>}</div>}
             {(activeQuestion || selected) && <div className="conversation-thread">
-              <div className="user-message"><span>{selected?.question || activeQuestion}</span><div className="user-avatar">YOU</div></div>
-              {loading ? <div className="assistant-response loading-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> WORKING ON IT</div><div className="loading-state"><div><strong>Following the data trail</strong><span>Live activity from the agents and their tools:</span></div><ProgressTimeline events={progress} /></div></div></div> : selected && <Answer entry={selected} />}
+              {(selected?.turns || []).map((turn) => <div className="conversation-turn" key={turn.id}><div className="user-message"><span>{turn.question}</span><div className="user-avatar">YOU</div></div><Answer entry={turn} /></div>)}
+              {activeQuestion && <><div className="user-message"><span>{activeQuestion}</span><div className="user-avatar">YOU</div></div><div className="assistant-response loading-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> WORKING ON IT</div><div className="loading-state"><div><strong>Following the data trail</strong><span>Live activity from the agents and their tools:</span></div><ProgressTimeline events={progress} /></div></div></div></>}
             </div>}
-            {!selected && !loading && !activeQuestion && <section className="suggestions"><div className="suggestions-title"><Compass size={17} /><span>TRY ASKING</span></div><div className="suggestion-grid">{examples.map(({ icon: Icon, label, question: example }) => <button key={label} className="suggestion" onClick={() => ask(example)}><span className="suggestion-icon"><Icon size={21} /></span><span>{label}<small>{example}</small></span><ArrowRight className="suggestion-arrow" size={18} /></button>)}</div></section>}
-            <form className="ask-box" onSubmit={(event) => { event.preventDefault(); ask(question) }}><div className="ask-icon"><Sparkles size={21} /></div><label htmlFor="question" className="sr-only">Ask Intentra about your data</label><textarea id="question" value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); ask(question) } }} rows={2} placeholder="Message Intentra about your data…" disabled={loading || !datasetId} /><div className="ask-footer"><span><ShieldCheck size={15} /> Grounded in your catalog</span><button type="submit" disabled={!question.trim() || loading || !datasetId} aria-label="Send message">{loading ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />} <span>{loading ? 'Analyzing' : 'Send'}</span></button></div></form>
+            {!selected && !loading && !activeQuestion && datasetContext?.suggested_questions?.length > 0 && <section className="suggestions"><div className="suggestions-title"><Compass size={17} /><span>START WITH YOUR DATA</span></div><div className="suggestion-grid">{datasetContext.suggested_questions.map(({ kind, label, description, question: example }) => { const Icon = suggestionIcons[kind] || Table2; return <button key={`${kind}-${example}`} className="suggestion" onClick={() => ask(example)}><span className="suggestion-icon"><Icon size={21} /></span><span className="suggestion-copy"><strong>{label}</strong><small>{description || example}</small></span><ArrowRight className="suggestion-arrow" size={18} /></button> })}</div></section>}
+            {!selected && !loading && !activeQuestion && datasetContextLoading && <div className="schema-loading"><LoaderCircle className="spin" size={15} /> Reading this dataset’s table structure…</div>}
+            <form className="ask-box" onSubmit={(event) => { event.preventDefault(); ask(question) }}><div className="ask-icon"><Sparkles size={21} /></div><label htmlFor="question" className="sr-only">Ask Intentra about your data</label><textarea id="question" value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); ask(question) } }} rows={2} placeholder="Message Intentra about your data…" disabled={loading || !datasetId} /><span className="composer-helper">Ask about trends, anomalies, or relationships in your data.</span><div className="ask-footer"><span><ShieldCheck size={15} /> Grounded in your catalog</span><button type="submit" disabled={!question.trim() || loading || !datasetId} aria-label="Send message">{loading ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />} <span>{loading ? 'Analyzing' : 'Send'}</span></button></div></form>
           </section>
         </> : view === 'knowledge-agent' ? <CatalogAgentWorkspace datasetId={datasetId} entry={catalogAgentEntry} onSubmit={askCatalogAgent} /> : <section className="catalog-section"><div className="section-head"><div><span className="eyebrow"><span className="eyebrow-mark" /> KNOWLEDGE CATALOG</span><h2>Discover your data assets<span className="period">.</span></h2><p>Search tables and datasets indexed by Google Cloud.</p></div></div><form className="catalog-search" onSubmit={search}><Search size={21} /><label className="sr-only" htmlFor="catalog-query">Search catalog</label><input id="catalog-query" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search for claims, customers, transactions..." /><button type="submit" disabled={searching || !searchTerm.trim()}>{searching ? <LoaderCircle className="spin" size={18} /> : 'Search assets'}</button></form>{searchError && <div className="error-panel"><CircleAlert size={18} />{searchError}</div>}{assets && <div className="catalog-results"><div className="catalog-result-head"><span>{assets.length} {assets.length === 1 ? 'ASSET' : 'ASSETS'} FOUND</span><span>KNOWLEDGE CATALOG</span></div>{assets.length ? assets.map((asset) => <div className="catalog-row" key={asset.name}><div className="catalog-icon"><Database size={20} /></div><div className="catalog-meta"><strong>{asset.displayName || asset.fqn}</strong><small>{asset.fqn}</small><span>{asset.system || 'Data asset'} <i /> {asset.location || 'Unknown region'}</span></div><button className="icon-button" aria-label={`Ask about ${asset.displayName || asset.fqn}`} title="Ask about this asset" onClick={() => { setView('ask'); setQuestion(`Tell me about ${asset.displayName || asset.fqn}`) }}><ArrowRight size={19} /></button></div>) : <div className="no-results">No assets matched. Try a different term.</div>}</div>}{!assets && !searchError && <div className="catalog-placeholder"><BookOpen size={32} /><strong>Your catalog, one search away.</strong><span>Find relevant assets before you start building.</span></div>}</section>}
         <footer className="page-footer"><span><span className="footer-bars"><i /><i /><i /><i /></span> INTENTRA · ASK BETTER. SEE FURTHER.</span><span>BUILT ON GOOGLE CLOUD <ExternalLink size={13} /></span></footer>

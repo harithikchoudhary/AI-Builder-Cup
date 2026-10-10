@@ -4,7 +4,7 @@ This application routes natural-language analysis, visualization, and catalog-ga
 
 ## Architecture
 
-The React/Vite UI sends questions to FastAPI. FastAPI invokes saved Data Agents through the Gemini Data Analytics API: SQL analysis uses the first agent, chart recommendations use the second, and catalog gaps use the third. The catalog explorer still searches Google Knowledge Catalog through the Dataplex MCP endpoint.
+The React/Vite UI sends questions to FastAPI. FastAPI invokes saved Data Agents through the Gemini Data Analytics API: SQL analysis uses the first agent, chart recommendations use the second, and catalog gaps use the third. The catalog explorer still searches Google Knowledge Catalog through the Dataplex MCP endpoint. Chat turns are persisted to BigQuery and grouped by browser session and conversation ID.
 
 ## Request Flow
 
@@ -31,6 +31,7 @@ GET /datasets still lists BigQuery datasets for the project configured in GCP_PR
 - Google Cloud Application Default Credentials with access to the Conversational Analytics agents and their configured BigQuery sources.
 - The Google Gemini Data Analytics API enabled in the agent project.
 - GCP_PROJECT_ID set for the BigQuery dataset picker and catalog explorer.
+- A dedicated BigQuery history dataset (defaults to `intentra_chat_history`) in the project configured by GCP_PROJECT_ID. The backend creates the dataset and `conversation_turns` table on first use; the default location is US.
 - CONVERSATIONAL_API_PROJECT_ID set if the saved agents are in a different project than the default configured in the backend.
 
 Install packages in the project's virtual environment:
@@ -44,7 +45,12 @@ Set `.env`:
 
 ```text
 GCP_PROJECT_ID=your-gcp-project-id
+CHAT_HISTORY_DATASET=intentra_chat_history
+CHAT_HISTORY_TABLE=conversation_turns
+CHAT_HISTORY_LOCATION=US
 ```
+
+The Cloud Run runtime identity needs permission to create the dataset and history table, insert turns, and run BigQuery history queries. Set `CHAT_HISTORY_LOCATION` to a supported location appropriate for your data before first use; once BigQuery creates the dataset, its location cannot be changed. History uses a browser-generated session ID and does not require sign-in; clearing browser storage starts a new history view. The saved turn includes the user's question and the agent's JSON response, including returned query rows.
 
 For local user credentials, install the Google Cloud CLI and run `gcloud auth application-default login`. Set the quota project with `gcloud auth application-default set-quota-project YOUR_GCP_PROJECT_ID` if required for API billing. Changing the active `gcloud` project alone does not change ADC credentials or this app's project ID.
 
