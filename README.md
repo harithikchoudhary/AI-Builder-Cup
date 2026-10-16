@@ -33,19 +33,18 @@ The importer is idempotent, never replaces existing applications, and keeps thes
 
 The regulatory reference importer, `python -m backend.import_regulatory_reference`, stores the unchanged 30-page IRDAI Master Circular on Health Insurance Business dated 29 May 2024 and attaches it to the two sample cases that have not started their pipelines. Its original official URL, circular number, publication date, SHA-256 digest, page references and six source-linked review topics are preserved in the policy outline. The local source PDF and provenance files are in `samples/underwriting/`. This is a dated source reference; it does not claim to include subsequent amendments or establish an application's compliance. Re-running the importer reuses the same source hash and preserves existing application selections.
 
-This application routes natural-language analysis, visualization, and catalog-gap requests to three saved Google Cloud Conversational Analytics Data Agents. The backend invokes the agents through the Gemini Data Analytics API using Application Default Credentials.
+This application routes natural-language analysis and visualization requests to two saved Google Cloud Conversational Analytics Data Agents. The backend invokes the agents through the Gemini Data Analytics API using Application Default Credentials.
 
 ## Architecture
 
-The React/Vite UI sends questions to FastAPI. FastAPI invokes saved Data Agents through the Gemini Data Analytics API: SQL analysis uses the first agent, chart recommendations use the second, and catalog gaps use the third. The catalog explorer still searches Google Knowledge Catalog through the Dataplex MCP endpoint. Chat turns are persisted to BigQuery and grouped by browser session and conversation ID.
+The React/Vite UI sends questions to FastAPI. FastAPI invokes saved Data Agents through the Gemini Data Analytics API: SQL analysis uses the first agent and chart recommendations use the second. Chat turns are persisted to BigQuery and grouped by browser session and conversation ID.
 
 ## Request Flow
 
 1. The UI sends a natural-language question to POST /ask, including the selected dataset when available.
 2. FastAPI calls the saved SQL/Data Analyst agent using Application Default Credentials.
 3. FastAPI passes the SQL agent's structured response, SQL, columns, and result rows to the Visualization agent.
-4. If the SQL agent reports a catalog or schema gap, FastAPI calls the Knowledge Gap agent instead of charting missing results.
-5. The UI displays the result table followed by up to four chart cards together on the same page; it does not switch to a separate chart tab.
+4. The UI displays the result table followed by up to four chart cards together on the same page; it does not switch to a separate chart tab.
 
 GET /datasets still lists BigQuery datasets for the project configured in GCP_PROJECT_ID. The selected dataset is included in the SQL agent prompt; the configured agent must have access to that dataset and follow the scope instruction.
 
@@ -112,6 +111,7 @@ Keep `.env` at the project root. Import the API as `backend.api`, not `api`, so 
 ```powershell
 $env:NO_PROXY = "127.0.0.1,localhost"
 .\.venv\Scripts\python.exe -m uvicorn backend.api:app --host 127.0.0.1 --port 8002
+python -m uvicorn backend.api:app --host 127.0.0.1 --port 8002
 ```
 
 If your terminal is already in `backend` with `.venv` activated, run:
@@ -139,8 +139,7 @@ The configured agent resource IDs are:
 
 - Data Analyst / SQL: agent_a5c56f7c-56a2-4fab-a88e-ff7aa98decae
 - Visualization / Chart: agent_39ff0a49-d5bf-497b-8787-5c0884f45a55
-- Knowledge Gap: agent_047d8eb3-e02c-44f3-bf69-bb06b883796f
 
-The agent project defaults to project-b222a5e1-4bfe-4261-a4e. Override the defaults with CONVERSATIONAL_API_PROJECT_ID, SQL_DATA_AGENT_ID, VISUALIZATION_DATA_AGENT_ID, and KNOWLEDGE_GAP_DATA_AGENT_ID if needed.
+The agent project defaults to project-b222a5e1-4bfe-4261-a4e. Override the defaults with CONVERSATIONAL_API_PROJECT_ID, SQL_DATA_AGENT_ID, and VISUALIZATION_DATA_AGENT_ID if needed.
 
-The runtime identity needs access to all three agents and their configured BigQuery sources. Enable the Gemini Data Analytics API in the Conversational Analytics project, configure Google Application Default Credentials, and restart the backend after changing the environment.
+The runtime identity needs access to both agents and their configured BigQuery sources. Enable the Gemini Data Analytics API in the Conversational Analytics project, configure Google Application Default Credentials, and restart the backend after changing the environment.
