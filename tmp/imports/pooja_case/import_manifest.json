@@ -1,0 +1,349 @@
+[
+  {
+    "application_id": "SLH-HI-2026-0147",
+    "applicant": "Pooja Sharma",
+    "date_of_birth": "1995-08-19",
+    "email": "pooja.sharma@example.com",
+    "product_name": "SecureLife Health Shield Plus",
+    "product_code": "SLH-HSP-IND-01",
+    "application_details": {
+      "sum_insured_inr": 1000000,
+      "declaration_summary": "Applicant-declared, not independently verified. height cm: 162; weight kg: 67; bmi: 25.5; tobacco: Never; alcohol: No; exercise: Walking 3-4 days per week; diagnosis: Hypothyroidism; medication: Levothyroxine 50 mcg orally each morning; surgeries: None declared; hospitalizations last 5 years: None declared; family history: Mother: hypertension",
+      "submitted_application": {
+        "application_id": "SLH-HI-2026-0147",
+        "applicant_name": "Pooja Sharma",
+        "date_of_birth": "1995-08-19",
+        "age_on_submission": 31,
+        "gender": "Female",
+        "region": {
+          "country": "India",
+          "state": "Karnataka",
+          "city": "Bengaluru",
+          "locality": "HSR Layout Sector 2",
+          "postal_code": "560102",
+          "zone": "South India",
+          "residence_type": "Urban",
+          "servicing_branch": "Bengaluru South",
+          "requested_network_region": "Karnataka",
+          "policy_jurisdiction": "India"
+        },
+        "address": "Flat 302, Cedar Grove Residency, 4th Cross, HSR Layout Sector 2, Bengaluru, Karnataka 560102",
+        "insurer": "SecureLife Insurance Pvt. Ltd.",
+        "product": "SecureLife Health Shield Plus",
+        "product_code": "SLH-HSP-IND-01",
+        "application_date": "2026-10-16",
+        "requested_start_date": "2026-11-01",
+        "policy_term": "1 year",
+        "plan_type": "Individual indemnity health",
+        "sum_insured_inr": 1000000,
+        "deductible_inr": 0,
+        "co_pay_percent": 0,
+        "room_category": "Single private room (subject to policy schedule)",
+        "proposer_is_insured": true,
+        "contact": {
+          "email": "pooja.sharma@example.com",
+          "mobile": "Not supplied - verification required"
+        },
+        "occupation": {
+          "title": "Business Analyst",
+          "employer": "BluePeak Digital Solutions Pvt. Ltd.",
+          "employment_type": "Salaried",
+          "work_location": "Bengaluru",
+          "annual_gross_income_inr": 1050000
+        },
+        "nominee": {
+          "name": "Rohan Sharma",
+          "relationship": "Spouse",
+          "age": 34
+        },
+        "lifestyle": {
+          "height_cm": 162,
+          "weight_kg": 67,
+          "bmi": 25.5,
+          "tobacco": "Never",
+          "alcohol": "No",
+          "exercise": "Walking 3-4 days per week"
+        },
+        "health": {
+          "declared_conditions": [
+            {
+              "condition": "Hypothyroidism",
+              "diagnosed": "2023-02",
+              "treatment": "Levothyroxine 50 mcg orally each morning",
+              "current_status": "Stable by self-report",
+              "last_review": "2026-10-08"
+            }
+          ],
+          "allergies": "None declared",
+          "surgeries": "None declared",
+          "hospitalizations_5_years": "None declared",
+          "pregnancy_status": "Not declared; ask only if relevant and permitted",
+          "family_history": "Mother: hypertension",
+          "current_symptoms": "None declared"
+        },
+        "previous_cover": {
+          "insurer": "Everwell Health Insurance",
+          "policy_number": "EWH-IND-2025-08341",
+          "period_start": "2025-11-01",
+          "period_end": "2026-10-31",
+          "sum_insured_inr": 500000,
+          "claims_declared": 0,
+          "continuity_evidence_status": "Pending verification"
+        },
+        "payment": {
+          "frequency": "Annual",
+          "premium_status": "Not quoted",
+          "payment_status": "Not collected"
+        },
+        "consent": {
+          "proposal_declaration": true,
+          "medical_underwriting_processing": true,
+          "prior_insurer_verification": true,
+          "consent_recorded_at": "2026-10-16"
+        },
+        "underwriting_status": "PENDING_EVIDENCE_AND_MEDICAL_REVIEW",
+        "documents": [
+          {
+            "filename": "01_proposal_form.pdf",
+            "title": "Health Insurance Proposal Form",
+            "issuer": "SECURELIFE INSURANCE | NEW BUSINESS"
+          },
+          {
+            "filename": "02_customer_profile_and_region.pdf",
+            "title": "Applicant and Regional Servicing Profile",
+            "issuer": "SECURELIFE INSURANCE | CUSTOMER OPERATIONS"
+          },
+          {
+            "filename": "03_kyc_intake_record.pdf",
+            "title": "Customer Due Diligence Intake Record",
+            "issuer": "SECURELIFE INSURANCE | KYC OPERATIONS"
+          },
+          {
+            "filename": "04_address_declaration.pdf",
+            "title": "Residence and Correspondence Declaration",
+            "issuer": "POOJA SHARMA | PROPOSAL ENCLOSURE"
+          },
+          {
+            "filename": "05_employment_income_declaration.pdf",
+            "title": "Employment and Income Declaration",
+            "issuer": "POOJA SHARMA | FINANCIAL DISCLOSURE"
+          },
+          {
+            "filename": "06_medical_questionnaire.pdf",
+            "title": "Health Declaration and Medical Questionnaire",
+            "issuer": "SECURELIFE INSURANCE | HEALTH UNDERWRITING"
+          },
+          {
+            "filename": "07_thyroid_lab_results.pdf",
+            "title": "Thyroid Function Test Results",
+            "issuer": "MERIDIAN CLINICAL DIAGNOSTICS | LABORATORY SERVICES"
+          },
+          {
+            "filename": "08_clinical_consultation.pdf",
+            "title": "Outpatient Consultation Summary",
+            "issuer": "LAKESIDE FAMILY CLINIC | INTERNAL MEDICINE"
+          },
+          {
+            "filename": "09_medication_record.pdf",
+            "title": "Current Medication and Treatment Record",
+            "issuer": "LAKESIDE FAMILY CLINIC | TREATMENT SUMMARY"
+          },
+          {
+            "filename": "10_previous_insurance_declaration.pdf",
+            "title": "Prior Health Insurance Coverage Declaration",
+            "issuer": "POOJA SHARMA | INSURANCE HISTORY"
+          },
+          {
+            "filename": "11_nominee_details.pdf",
+            "title": "Nomination and Beneficiary Details",
+            "issuer": "SECURELIFE INSURANCE | PROPOSAL ENCLOSURE"
+          },
+          {
+            "filename": "12_consent_declaration.pdf",
+            "title": "Proposal Declaration and Data Processing Consent",
+            "issuer": "SECURELIFE INSURANCE | CONSENT REGISTER"
+          },
+          {
+            "filename": "13_document_receipt_checklist.pdf",
+            "title": "Document Receipt and Evidence Checklist",
+            "issuer": "SECURELIFE INSURANCE | NEW BUSINESS"
+          },
+          {
+            "filename": "14_underwriting_intake_summary.pdf",
+            "title": "Underwriting Intake and Referral Summary",
+            "issuer": "SECURELIFE INSURANCE | UNDERWRITING QUEUE"
+          }
+        ],
+        "evidence_status": {
+          "identity_verification": "PENDING",
+          "address_verification": "PENDING",
+          "medical_provider_authentication": "PENDING",
+          "prior_policy_confirmation": "PENDING",
+          "consent_signature": "NOT_ATTACHED",
+          "phone_number": "MISSING"
+        },
+        "policy_evaluation_hints": [
+          "SLI-HLT-001",
+          "SLI-KYC-002",
+          "SLI-AML-003",
+          "SLI-MED-004",
+          "SLI-FIN-005",
+          "SLI-OCC-006",
+          "SLI-COV-007",
+          "SLI-PRM-008",
+          "SLI-FRD-009",
+          "SLI-DEC-010",
+          "SLI-DAT-011",
+          "SLI-AI-012",
+          "SLI-PED-013",
+          "SLI-CLM-014",
+          "SLI-POR-015"
+        ]
+      },
+      "region": {
+        "country": "India",
+        "state": "Karnataka",
+        "city": "Bengaluru",
+        "locality": "HSR Layout Sector 2",
+        "postal_code": "560102",
+        "zone": "South India",
+        "residence_type": "Urban",
+        "servicing_branch": "Bengaluru South",
+        "requested_network_region": "Karnataka",
+        "policy_jurisdiction": "India"
+      },
+      "application_date": "2026-10-16"
+    },
+    "medical_declaration": {
+      "declared_conditions": [
+        "Hypothyroidism"
+      ],
+      "current_medications": [
+        "Levothyroxine 50 mcg orally each morning"
+      ],
+      "prior_hospitalisation": false,
+      "tobacco_use": "Never",
+      "declaration_summary": "Applicant-declared information from supplied application.json; source verification pending."
+    },
+    "checks": [
+      {
+        "title": "Identity verification",
+        "state": "Review required",
+        "detail": "Submitted evidence status: PENDING. Employee verification required."
+      },
+      {
+        "title": "Address verification",
+        "state": "Review required",
+        "detail": "Submitted evidence status: PENDING. Employee verification required."
+      },
+      {
+        "title": "Medical provider authentication",
+        "state": "Review required",
+        "detail": "Submitted evidence status: PENDING. Employee verification required."
+      },
+      {
+        "title": "Prior policy confirmation",
+        "state": "Review required",
+        "detail": "Submitted evidence status: PENDING. Employee verification required."
+      },
+      {
+        "title": "Consent signature",
+        "state": "Review required",
+        "detail": "Submitted evidence status: NOT_ATTACHED. Employee verification required."
+      },
+      {
+        "title": "Phone number",
+        "state": "Review required",
+        "detail": "Submitted evidence status: MISSING. Employee verification required."
+      }
+    ],
+    "documents": [
+      {
+        "name": "01_proposal_form.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\01_proposal_form.pdf",
+        "document_type": "Health Insurance Proposal Form"
+      },
+      {
+        "name": "02_customer_profile_and_region.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\02_customer_profile_and_region.pdf",
+        "document_type": "Applicant and Regional Servicing Profile"
+      },
+      {
+        "name": "03_kyc_intake_record.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\03_kyc_intake_record.pdf",
+        "document_type": "Customer Due Diligence Intake Record"
+      },
+      {
+        "name": "04_address_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\04_address_declaration.pdf",
+        "document_type": "Residence and Correspondence Declaration"
+      },
+      {
+        "name": "05_employment_income_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\05_employment_income_declaration.pdf",
+        "document_type": "Employment and Income Declaration"
+      },
+      {
+        "name": "06_medical_questionnaire.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\06_medical_questionnaire.pdf",
+        "document_type": "Health Declaration and Medical Questionnaire"
+      },
+      {
+        "name": "07_thyroid_lab_results.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\07_thyroid_lab_results.pdf",
+        "document_type": "Thyroid Function Test Results"
+      },
+      {
+        "name": "08_clinical_consultation.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\08_clinical_consultation.pdf",
+        "document_type": "Outpatient Consultation Summary"
+      },
+      {
+        "name": "09_medication_record.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\09_medication_record.pdf",
+        "document_type": "Current Medication and Treatment Record"
+      },
+      {
+        "name": "10_previous_insurance_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\10_previous_insurance_declaration.pdf",
+        "document_type": "Prior Health Insurance Coverage Declaration"
+      },
+      {
+        "name": "11_nominee_details.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\11_nominee_details.pdf",
+        "document_type": "Nomination and Beneficiary Details"
+      },
+      {
+        "name": "12_consent_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\12_consent_declaration.pdf",
+        "document_type": "Proposal Declaration and Data Processing Consent"
+      },
+      {
+        "name": "13_document_receipt_checklist.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\13_document_receipt_checklist.pdf",
+        "document_type": "Document Receipt and Evidence Checklist"
+      },
+      {
+        "name": "14_underwriting_intake_summary.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\GCP-Knowledge catalog\\GCP-Knowledge catalog\\tmp\\imports\\pooja_case\\14_underwriting_intake_summary.pdf",
+        "document_type": "Underwriting Intake and Referral Summary"
+      }
+    ],
+    "intake_source": {
+      "files": [
+        {
+          "name": "application.json",
+          "object_uri": "gs://intentra-application-documents-611341613317/applications/SLH-HI-2026-0147/intake/application.json",
+          "sha256": "062604dd5263e34404b6ef58709c372b03ef9058d07ec0084276c69446dc914b"
+        },
+        {
+          "name": "README.txt",
+          "object_uri": "gs://intentra-application-documents-611341613317/applications/SLH-HI-2026-0147/intake/README.txt",
+          "sha256": "108ec0e451b4cf7a140f47df3dcb58a5cf245c6c55582b7a004d021d180ae742"
+        }
+      ],
+      "classification": "fictional_test_application",
+      "verification_status": "employee_review_required"
+    }
+  }
+]

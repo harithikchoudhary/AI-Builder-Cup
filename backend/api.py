@@ -856,12 +856,20 @@ def run_application_pipeline(application_id: str, req: PipelineRunRequest):
 
 @app.post("/underwriting/cases/{application_id}/workflow/{step_id}")
 def underwriting_workflow_step(application_id: str, step_id: str, req: UnderwritingStepRequest):
+    lock = pipeline_service.case_lock(application_id)
+    if not lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="This application's pipeline is already processing a stage.")
     try:
-        result = health_underwriting.run_workflow_step(application_id, step_id, req.confirm, req.attestation, req.result_id)
+        case = health_underwriting.get_case(application_id)
+        if case and case.get("workflow", {}).get("version", 0) >= 5:
+            raise ValueError("Refresh the application and use the automatic pipeline's review checkpoint to continue.")
+        result = health_underwriting.run_workflow_step(application_id, step_id, req.confirm, req.attestation, req.result_id, _case=case)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=503, detail=f"Underwriting review agent could not complete this step: {exc}") from exc
+    finally:
+        lock.release()
     if result is None:
         raise HTTPException(status_code=404, detail="Application not found.")
     return result

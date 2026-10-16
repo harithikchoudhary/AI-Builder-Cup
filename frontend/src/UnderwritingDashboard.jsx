@@ -5,6 +5,27 @@ import ApplicantDeclaration from './ApplicantDeclaration'
 export const money = (value, currency = 'INR') => value == null ? 'Not calculated' : `${currency} ${Number(value).toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}`
 export const evidenceLabels = { evidence_found: 'Evidence found', evidence_missing: 'Evidence missing', review_needed: 'Needs interpretation' }
 
+function unresolvedRequirements(application) {
+  const workflow = application.workflow || {}
+  const results = workflow.steps || {}
+  const issues = [
+    ...(workflow.open_items || []).map((item) => item.text),
+    ...Object.entries(results).filter(([step]) => step !== 'recommendation').flatMap(([, result]) => result.outcome?.issues || []),
+    ...(results.recommendation?.missing_information || []),
+    ...(application.issues || []),
+    ...(results.risk?.open_evidence_gaps || []),
+    ...(application.documents || []).filter((doc) => doc.state === 'Missing').map((doc) => `Missing document: ${doc.name}`),
+  ]
+  // Earlier saved runs have no normalized outcome fields. Derive their real gaps
+  // from saved results, without rewriting the employee's recorded review.
+  if (results.premium && results.premium.premium == null && !results.premium.outcome) issues.push('Provide a supported product rate configuration and verified pricing inputs. No premium has been calculated.')
+  if (results.risk && results.risk.risk_assessment?.score == null && !results.risk.outcome) issues.push('A validated risk assessment is unavailable; qualified medical or underwriting review is required.')
+  for (const [step, label] of [['irdai', 'Regulatory'], ['company_policy', 'Company']]) {
+    if (results[step] && !results[step].evidence_review) issues.push(`${label} rules were reviewed in the earlier workflow; no rule-by-rule evidence comparison is saved.`)
+  }
+  return [...new Set(issues.filter((item) => typeof item === 'string' && item.trim()))]
+}
+
 export function EvidenceTable({ review }) {
   if (!review?.rules?.length) return <p className="flow-muted">No rule-by-rule evidence comparison is available for this saved review.</p>
   return <div className="pipeline-table-scroll"><table className="pipeline-result-table flow-evidence-table"><thead><tr><th scope="col">Policy requirement</th><th scope="col">Application finding</th><th scope="col">Evidence status</th></tr></thead><tbody>{review.rules.map((rule) => <tr key={rule.id}><td><strong>{rule.topic}</strong><small>{rule.policy_name}</small><details><summary>View policy wording</summary><p>{rule.rule_text}</p>{rule.source_quote && <blockquote>{rule.source_quote}</blockquote>}</details></td><td>{rule.observation}{rule.evidence?.length > 0 && <details><summary>View recorded evidence ({rule.evidence.length})</summary><ul>{rule.evidence.map((evidence) => <li key={evidence.id}><strong>{evidence.source}</strong>{evidence.field && <small>{evidence.field}</small>}<p>{evidence.value}</p>{evidence.quote && <blockquote>{evidence.quote}</blockquote>}</li>)}</ul></details>}</td><td><span className={`flow-badge ${rule.status === 'evidence_found' ? 'neutral' : 'attention'}`}>{evidenceLabels[rule.status] || 'Needs review'}</span></td></tr>)}</tbody></table></div>
@@ -34,12 +55,11 @@ export default function UnderwritingDashboard({ application, steps, PremiumPanel
   const recommendation = results.recommendation || {}
   const risk = results.risk?.risk_assessment || {}
   const policies = application.policy_selection?.policies || []
-  const openItems = workflow.open_items || Object.entries(results).flatMap(([step, result]) => (result.outcome?.issues || []).map((text, index) => ({ id: `${step}:${index}`, step, text })))
-  const gaps = [...new Set([...openItems.map((item) => item.text), ...(recommendation.missing_information || [])])]
+  const gaps = unresolvedRequirements(application)
   const cover = application.application_details?.sum_insured_inr
   const details = [ ['Applicant', application.applicant], ['Application ID', application.application_id], ['Date of birth', application.date_of_birth], ['Product', application.plan], ['Insurance type', application.insurance_type], ['Requested cover', cover ? money(cover) : 'Not recorded'] ]
   return <section className="underwriting-dashboard">
-    <header className="dashboard-heading"><div><span className="uw-eyebrow"><CheckCircle2 size={16} /> PIPELINE COMPLETE</span><h3>Application decision dashboard</h3><p>All findings, applied policies and outstanding requirements in one place.</p></div><span className="flow-badge neutral">{workflow.completed_at ? `Completed ${new Date(workflow.completed_at).toLocaleString()}` : 'Processing complete'}</span></header>
+    <header className="dashboard-heading"><div><span className="uw-eyebrow"><CheckCircle2 size={16} /> PIPELINE COMPLETE</span><h3>Application decision dashboard</h3><p>All findings, applied policies and outstanding requirements in one place.</p><div className="dashboard-checkpoint-summary"><span className="flow-badge neutral">{results.documents?.reviewer_confirmed ? 'Document review recorded' : 'Document review not recorded'}</span><span className="flow-badge neutral">{results.risk?.reviewer_confirmed ? 'Findings review recorded' : 'Findings review not recorded'}</span></div></div><span className="flow-badge neutral">{workflow.completed_at ? `Completed ${new Date(workflow.completed_at).toLocaleString()}` : 'Processing complete'}</span></header>
     <div className="dashboard-metrics"><article><span>Employee outcome</span><strong>{application.status === 'In review' ? 'Decision pending' : application.status}</strong><small>{application.decision ? 'Recorded employee action' : 'No automatic approval'}</small></article><article className={premium.premium == null ? 'needs-attention' : ''}><span>Annual premium before tax</span><strong>{money(premium.premium, premium.currency)}</strong><small>{premium.premium == null ? 'Pricing configuration or inputs unresolved' : 'Calculated indication · not an issued quote'}</small></article><article><span>Risk assessment</span><strong>{risk.score == null ? 'Review required' : risk.band}</strong><small>{risk.score == null ? 'No validated risk rating available' : `Recorded score: ${risk.score}`}</small></article><article className={gaps.length ? 'needs-attention' : ''}><span>Open requirements</span><strong>{gaps.length}</strong><small>{gaps.length ? 'Remain open after processing' : 'No gaps listed in this record'}</small></article></div>
     <section className="dashboard-recommendation"><div className="dashboard-recommendation-icon"><ShieldCheck size={24} /></div><div><span>UNDERWRITING RECOMMENDATION</span><h4>{recommendation.recommendation || 'Employee review required'}</h4><p>{recommendation.rationale || recommendation.summary || 'Review the collected evidence before deciding.'}</p>{recommendation.supporting_evidence?.length > 0 && <ul>{recommendation.supporting_evidence.map((item, index) => <li key={index}>{item}</li>)}</ul>}<small>Advisory recommendation. The employee records the final outcome below.</small></div></section>
     <div className="dashboard-details-grid"><section className="case-panel"><div className="case-panel-heading"><FileText size={18} /><h3>Application & health details</h3></div><dl className="case-facts">{details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Not recorded'}</dd></div>)}</dl><ApplicantDeclaration details={application.application_details || {}} /></section><div className="dashboard-side-stack"><section className="case-panel"><div className="case-panel-heading"><AlertCircle size={18} /><h3>What is still needed?</h3><span>{gaps.length}</span></div>{gaps.length ? <ul className="dashboard-open-items">{gaps.map((text, index) => <li key={index}><span>{index + 1}</span><p>{text}</p></li>)}</ul> : <p className="flow-muted">No missing requirements are listed. The employee must still record the decision.</p>}</section><section className="case-panel"><div className="case-panel-heading"><ScrollText size={18} /><h3>Premium calculation</h3></div>{premium.premium_calculation ? <PremiumPanel calculation={premium.premium_calculation} /> : <><p className="flow-muted">{premium.summary || 'No premium calculation is saved.'}</p><ul>{premium.findings?.map((finding, index) => <li key={index}>{finding}</li>)}</ul></>}</section></div></div>

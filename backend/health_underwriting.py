@@ -343,7 +343,7 @@ def run_workflow_step(application_id, step_id, confirm=False, attestation="", re
     workflow = case.get("workflow") or {"steps": {}, "version": 3}
     if not workflow.get("started_at"):
         raise ValueError("Select the application's policies and start its underwriting pipeline first.")
-    workflow["version"] = 4
+    workflow["version"] = max(workflow.get("version", 4), 4)
     steps = workflow.setdefault("steps", {})
     index = WORKFLOW_STEPS.index(step_id)
     if index and WORKFLOW_STEPS[index - 1] not in steps:
@@ -489,7 +489,7 @@ def run_workflow_step(application_id, step_id, confirm=False, attestation="", re
     workflow["pending_result"] = result
     case["workflow"] = workflow
     _save_case_event(case, f"LangGraph agent run: {result['agent']}",
-                     f"{step_id} findings generated; awaiting employee confirmation")
+                     f"{step_id} findings generated and saved for pipeline processing")
     return {"application_id": application_id, "workflow": workflow,
             "step_result": result, "status": case["status"], "documents": case.get("documents", [])}
 
@@ -528,6 +528,8 @@ def update_case(application_id, action, note):
     case = get_case(application_id)
     if case is None:
         return None
+    if case.get("status") in {"Approved", "Declined"}:
+        raise ValueError("A final employee decision is already recorded for this application.")
     if action in {"Approve", "Decline", "Refer", "Request information"} and not note.strip():
         raise ValueError("Record a reason for this employee action.")
     if action in {"Approve", "Decline"} and case.get("workflow", {}).get("current_step") != "complete":

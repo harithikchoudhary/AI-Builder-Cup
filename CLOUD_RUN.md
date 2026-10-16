@@ -12,6 +12,7 @@ The app is configured as one Cloud Run service: FastAPI serves the built React U
   - `roles/bigquery.jobUser` and `roles/bigquery.metadataViewer` on the project.
   - `roles/bigquery.dataViewer` on each BigQuery dataset the app should query. The underwriting service uses a dedicated dataset configured by `HEALTH_UNDERWRITING_DATASET` (default `intentra_health_underwriting`).
   - `roles/bigquery.dataEditor` on the dedicated underwriting dataset so application intake, extracted metadata, and reviewer events can be stored.
+  - `roles/bigquery.dataEditor` on the dedicated chat history dataset (`CHAT_HISTORY_DATASET`, default `intentra_chat_history`) so the runtime can create its history table and save conversation turns. Dataset read access alone does not allow `insertAll` writes.
   - `roles/storage.objectUser` on both the private application-document and policy-source buckets.
   - `roles/dataplex.catalogViewer` and `roles/mcp.toolUser` on the project if the catalog explorer is enabled.
 - Ensure the agent's underlying BigQuery data source also permits queries from the runtime identity.
@@ -56,16 +57,23 @@ gcloud run deploy intentra `
 
 The deployer also needs permission to deploy Cloud Run and `roles/iam.serviceAccountUser` on `intentra-runtime`. The source deploy command uses this repository's Dockerfile and builds the image with Cloud Build.
 
-Grant the runtime identity write access only to the underwriting dataset so it can store applications and append reviewer events:
+Grant the runtime identity write access to the dedicated underwriting and chat history datasets so it can store applications, reviewer events, and conversation turns:
 
 ```powershell
 bq add-iam-policy-binding --dataset `
   --member="serviceAccount:$serviceAccount" `
   --role="roles/bigquery.dataEditor" `
-  "$project:intentra_health_underwriting"
+  "${project}:intentra_health_underwriting"
+
+bq add-iam-policy-binding --dataset `
+  --member="serviceAccount:$serviceAccount" `
+  --role="roles/bigquery.dataEditor" `
+  "${project}:intentra_chat_history"
 ```
 
 The BigQuery dataset IAM binding command may require project allowlisting. If it reports that requirement, ask the project administrator to enable the approved dataset IAM workflow or grant the equivalent dataset-scoped role through the authorized console process. The runtime also needs `roles/bigquery.jobUser` at project scope to run analytics queries.
+
+Create the history dataset before granting dataset-scoped access (default location `US`, or the location selected in `CHAT_HISTORY_LOCATION`). The runtime can create `conversation_turns` inside an existing dataset with Data Editor access; creating the dataset itself requires additional project permissions. A `403 bigquery.tables.updateData` error while saving history means the identity performing the write needs dataset write access. Cloud Run uses its runtime service account; a local backend uses local Application Default Credentials. IAM changes take effect without redeploying the app.
 
 Before deploying, create a dedicated empty BigQuery schema and private document bucket. Set `$docBucket` to a globally unique name and use a bucket location approved for the client:
 

@@ -8,6 +8,8 @@ def review_policy_evidence(case, kind):
     rules = []
     for policy in policies:
         for index, rule in enumerate((policy.get("extracted_rules") or {}).get("rules", [])):
+            if not isinstance(rule, dict):
+                continue
             rules.append({"id": f"{policy['policy_id']}:{index}", "policy_id": policy["policy_id"],
                           "policy_name": policy.get("policy_name"), "topic": rule.get("topic") or "Policy requirement",
                           "rule_text": rule.get("rule_text") or rule.get("source_quote") or "",
@@ -16,6 +18,12 @@ def review_policy_evidence(case, kind):
     for key in ("applicant", "date_of_birth", "plan", "product_code", "insurance_type", "received_at"):
         if case.get(key) not in (None, ""):
             evidence[f"intake:{key}"] = {"source": "Application intake", "value": str(case[key])}
+    for key, value in case.get("application_details", {}).items():
+        if isinstance(value, (str, int, float, bool)) and key != "declaration_summary":
+            evidence[f"application:{key}"] = {"source": "Submitted application details", "field": key, "value": str(value)}
+    for key, value in (case.get("premium_inputs") or {}).items():
+        if value is not None:
+            evidence[f"rating_input:{key}"] = {"source": "Recorded rating input", "field": key, "value": str(value)}
     for doc in case.get("documents", []):
         for index, field in enumerate(doc.get("fields", [])):
             if isinstance(field, dict) and field.get("value") not in (None, ""):
@@ -24,7 +32,7 @@ def review_policy_evidence(case, kind):
                     "quote": field.get("source_quote") or ""}
     # Facts are submitted declarations, never independently verified medical facts.
     declared = case.get("application_details", {}).get("submitted_application", {}).get("health_declaration", {})
-    for key, value in declared.items() if isinstance(declared, dict) else []:
+    for key, value in (declared.items() if isinstance(declared, dict) else []):
         evidence[f"declaration:{key}"] = {"source": "Applicant declaration", "value": str(value)}
     fallback = {rule["id"]: {"status": "review_needed", "observation": "Compare this requirement with the source documents; no automatic evidence match is available.", "evidence_ids": []} for rule in rules}
     errors = []

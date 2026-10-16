@@ -50,6 +50,9 @@ def summarize_step(step, result, case):
         title = f"{label} evidence compared"
         total = len(review.get("rules", []))
         summary = f"Compared the available evidence with {total} rules from {review.get('policy_count', 0)} selected policies. Evidence matches are review aids, not passed checks."
+        if review.get("errors"):
+            title = f"{label} evidence needs manual review"
+            summary = f"Automatic matching was unavailable for part of this review. All {total} selected rules remain listed with their sources and any saved evidence matches."
         facts = [{"label": "Rules", "value": str(total)}, {"label": "Evidence found", "value": str(counts.get("evidence_found", 0))}, {"label": "Needs review", "value": str(counts.get("review_needed", 0) + counts.get("evidence_missing", 0))}]
         if not total:
             issues.append(f"No extracted {label.lower()} rules are available to compare.")
@@ -87,6 +90,8 @@ def summarize_step(step, result, case):
 def open_items(case):
     items = []
     for step, result in case.get("workflow", {}).get("steps", {}).items():
+        if step == "recommendation":
+            continue  # The recommendation repeats earlier gaps; don't count them twice.
         for index, text in enumerate(result.get("outcome", {}).get("issues", [])):
             items.append({"id": f"{step}:{index}", "step": step, "text": text})
     return items
@@ -116,6 +121,7 @@ def execute_pipeline(application_id, request, on_progress=None):
     if not lock.acquire(blocking=False):
         raise ValueError("This application's pipeline is already running. Wait for its current run to finish.")
     case = None
+    started_run = False
     def emit(kind, step, message):
         if on_progress:
             on_progress({"agent": step, "kind": kind, "message": message, "application": deepcopy(case)})
@@ -129,6 +135,8 @@ def execute_pipeline(application_id, request, on_progress=None):
             case = repository.start_pipeline(application_id)
         workflow = case["workflow"]
         workflow["version"] = 5
+        if workflow.get("current_step") == "complete":
+            return case
         pending = workflow.get("pending_result")
         step = workflow.get("current_step")
         if request.get("command") == "resume":
@@ -139,6 +147,7 @@ def execute_pipeline(application_id, request, on_progress=None):
                 raise ValueError("Confirm the checkpoint and add your review note before resuming.")
             if not pending.get("can_continue"):
                 raise ValueError("Required information is still missing. Resolve it and run this check again.")
+            started_run = True
             _commit(case, step, pending, note[:2000])
             emit("stage_complete", step, "Employee review recorded. Continuing automatically.")
         elif request.get("command") == "retry":
@@ -148,8 +157,16 @@ def execute_pipeline(application_id, request, on_progress=None):
                 workflow.pop(key, None)
         elif workflow.get("intervention"):
             return case
+        started_run = True
         workflow["pipeline_status"] = "running"
+        case["status"] = "In review"
         repository._save_case_event(case, "Pipeline running", "Employee started or resumed automatic processing.")
+        # Upgrade saved reviews without discarding their prior employee notes.
+        for saved_step, saved_result in workflow.get("steps", {}).items():
+            if saved_step in {"irdai", "company_policy"} and "evidence_review" not in saved_result:
+                emit("stage_running", saved_step, "Preparing evidence findings for the existing saved review…")
+                saved_result["evidence_review"] = review_policy_evidence(case, "regulatory" if saved_step == "irdai" else "company")
+            saved_result.setdefault("outcome", summarize_step(saved_step, saved_result, case))
         for _ in repository.WORKFLOW_STEPS:
             step = workflow.get("current_step")
             if step == "complete":
@@ -163,11 +180,14 @@ def execute_pipeline(application_id, request, on_progress=None):
                 emit("stage_running", step, "Comparing selected policy rules with the recorded application evidence…")
                 result["evidence_review"] = review_policy_evidence(case, "regulatory" if step == "irdai" else "company")
             result["outcome"] = summarize_step(step, result, case)
+            if step == "application_details" and result["outcome"]["issues"]:
+                result["can_continue"] = False
             if step == "recommendation":
                 gaps = open_items(case)
                 result["missing_information"] = list(dict.fromkeys(result.get("missing_information", []) + [item["text"] for item in gaps]))
                 if gaps and result.get("recommendation_category") == "approve_consideration":
                     result.update(recommendation="Refer for employee review", recommendation_category="refer_manual_review", rationale="Unresolved evidence or pricing gaps remain in the completed pipeline.")
+                    result.pop("llm", None)  # An earlier explanation must not contradict this result.
                 result["outcome"] = summarize_step(step, result, case)
             blockers = not result.get("can_continue")
             pause = blockers or step in {"documents", "risk"} or (step == "application_details" and result["outcome"]["issues"])
@@ -192,7 +212,7 @@ def execute_pipeline(application_id, request, on_progress=None):
         emit("pipeline_complete", "recommendation", "Processing complete. The application dashboard is ready.")
         return case
     except Exception:
-        if case and case.get("workflow", {}).get("pipeline_status") == "running":
+        if started_run and case and case.get("workflow", {}).get("pipeline_status") == "running":
             case["workflow"]["pipeline_status"] = "interrupted"
             try:
                 repository._save_case_event(case, "Pipeline interrupted", "Processing stopped before completion; resume from the saved stage.")

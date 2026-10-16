@@ -670,6 +670,26 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
 
   const workflow = selectedCase?.workflow || { steps: {}, current_step: 'documents' }
 
+  useEffect(() => {
+    if (!workspaceCaseId || runningStep || workflow.pipeline_status !== 'running') return
+    let cancelled = false
+    let timer
+    async function refreshRun() {
+      try {
+        const response = await fetch(`/underwriting/cases/${encodeURIComponent(workspaceCaseId)}`)
+        if (response.ok && !cancelled) {
+          const updated = await response.json()
+          if (!cancelled) {
+            setCases((previous) => [updated, ...previous.filter((item) => item.application_id !== updated.application_id)])
+            setStepResult(updated.workflow?.pending_result || null)
+          }
+        }
+      } catch {} finally { if (!cancelled) timer = setTimeout(refreshRun, 5000) }
+    }
+    refreshRun()
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [workspaceCaseId, runningStep, workflow.pipeline_status])
+
 
   return <section className="underwriting-workspace">
     <div className="uw-heading"><div><span className="uw-eyebrow"><Heart size={14} /> INSURANCE · EMPLOYEE WORKSPACE</span><h1>{workspaceCaseId ? 'Application workspace' : 'Applications'}</h1><p>{workspaceCaseId ? 'Review the application, apply policies, and run underwriting.' : 'Review received applications and move each case through underwriting.'}</p></div>{!workspaceCaseId && <button className="uw-start-button" onClick={() => { setIntakeOpen((open) => !open); setIntakeError('') }}><FilePlus2 size={16} /> New application</button>}</div>

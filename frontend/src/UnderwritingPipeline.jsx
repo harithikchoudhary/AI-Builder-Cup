@@ -49,7 +49,7 @@ function StepResult({ step, result, application, PremiumPanel }) {
     {id === 'application_details' && <ReviewTable headings={['Application detail', 'Submitted value']} rows={Object.entries(result.application || {}).filter(([key]) => key !== 'selected_policy_id').map(([key, value]) => [readable(key), display(value)])} />}
     {id === 'documents' && <>
       <ReviewTable headings={['Required document', 'Received status', 'Original']} rows={(application.documents || []).map((doc) => [doc.name, doc.state, doc.object_uri ? <a href={`/underwriting/cases/${encodeURIComponent(application.application_id)}/documents/${encodeURIComponent(doc.document_id)}/source`} target="_blank" rel="noreferrer">View document</a> : 'Not available'])} />
-      {result.extracted_fields?.length > 0 ? <><h5>Information read from documents</h5><ReviewTable headings={['Field', 'Extracted value', 'Source']} rows={result.extracted_fields.map((item) => [readable(item.field), display(item.value), <div>{item.document}{item.source_quote && <details><summary>View supporting text</summary><blockquote>{item.source_quote}</blockquote></details>}</div>])} /></> : <p className="pipeline-gap">No structured values are available. Review the source documents manually.</p>}
+      {result.extracted_fields?.length > 0 ? <details className="pipeline-disclosure"><summary>Compare extracted information ({result.extracted_fields.length} fields)</summary><ReviewTable headings={['Field', 'Extracted value', 'Source']} rows={result.extracted_fields.map((item) => [readable(item.field), display(item.value), <div>{item.document}{item.source_quote && <details><summary>View supporting text</summary><blockquote>{item.source_quote}</blockquote></details>}</div>])} /></details> : <p className="pipeline-gap">No structured values are available. Review the source documents manually.</p>}
       {result.intake_values?.length > 0 && <details className="pipeline-disclosure"><summary>Compare with values entered at intake</summary><ReviewTable headings={['Field', 'Intake value']} rows={result.intake_values.map((item) => [item.field, display(item.value)])} /></details>}
     </>}
     {['irdai', 'company_policy'].includes(id) && <>
@@ -67,7 +67,7 @@ function StepResult({ step, result, application, PremiumPanel }) {
     {id === 'premium' && <>{result.premium != null && <div className="pipeline-price"><strong>{result.currency} {Number(result.premium).toLocaleString('en-IN')}</strong><span>Indicative amount · not an approved quote</span></div>}{result.premium_calculation && <PremiumPanel calculation={result.premium_calculation} />}</>}
     {id === 'recommendation' && <><h5>Review summary</h5><ReviewTable headings={['Review', 'Recorded outcome']} rows={underwritingSteps.filter((item) => item.id !== 'recommendation').map((item) => {
       const reviewed = application.workflow?.steps?.[item.id]
-      const outcome = !reviewed ? 'Not recorded' : item.id === 'premium' && reviewed.premium == null ? 'No premium calculated' : item.id === 'risk' && reviewed.risk_assessment?.score == null ? 'Risk not assessed' : ['irdai', 'company_policy'].includes(item.id) ? 'Checklist reviewed by employee; no automated determination' : 'Employee review recorded'
+      const outcome = !reviewed ? 'Not recorded' : item.id === 'premium' && reviewed.premium == null ? 'No premium calculated' : item.id === 'risk' && reviewed.risk_assessment?.score == null ? 'Risk not assessed; employee findings review recorded' : reviewed.reviewer_confirmed ? 'Employee review recorded' : ['irdai', 'company_policy'].includes(item.id) && application.workflow?.steps?.risk?.reviewer_confirmed ? 'Included in employee findings review; no compliance certification' : 'Automatically processed; no employee verification claimed'
       return [item.title, outcome]
     })} /><h5>Unresolved information</h5>{result.missing_information?.length ? <ul>{result.missing_information.map((item, i) => <li key={i}>{item}</li>)}</ul> : <p>No missing items are listed in the application record. Review the unresolved risk, pricing, and rule checks above before deciding.</p>}<p className="pipeline-gap">{result.limitations}</p></>}
     {result.findings?.length > 0 && <details className="pipeline-disclosure" open={!result.can_continue || pricingMissing}><summary>Review notes ({result.findings.length})</summary><ul>{result.findings.map((item, i) => <li key={i}>{item}</li>)}</ul></details>}
@@ -83,7 +83,7 @@ function EmployeeCheckpoint({ application, pending, busy, saving, onResume, onRe
   const [error, setError] = useState('')
   useEffect(() => { setNote(''); setConfirmed(false); setError('') }, [checkpoint?.result_id])
   const results = application.workflow?.steps || {}
-  const openItems = Object.entries(results).flatMap(([step, result]) => (result.outcome?.issues || []).map((text) => ({ step, text })))
+  const openItems = [...Object.entries(results).flatMap(([step, result]) => (result.outcome?.issues || []).map((text) => ({ step, text }))), ...(pending.outcome?.issues || []).map((text) => ({ step: checkpoint.step, text }))]
   async function record(action) {
     if (!note.trim()) return setError('Add your review note before recording this action.')
     setError('')
