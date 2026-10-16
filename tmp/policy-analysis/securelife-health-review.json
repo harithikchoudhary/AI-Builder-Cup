@@ -1,0 +1,3023 @@
+{
+  "analysis_summary": "Extracted 15 company underwriting policies comprising 56 rules from SecureLife Insurance Pvt. Ltd. for the product SecureLife Health Shield. The document explicitly marks its contents as a synthetic proof-of-concept catalog where human review and underwriter sign-off are required, and automated final decisions are not permitted.",
+  "review_notes": [
+    "The document specifies a status of 'FICTIONAL_POC_ONLY' with an explicit disclaimer that thresholds and conditions are synthetic test configurations rather than official IRDAI rules.",
+    "No product code, UIN, or effective end date is provided in the source catalog.",
+    "How should missing inputs be operationalized beyond triggering an UNKNOWN status and document request?"
+  ],
+  "source_filename": "SecureLife_Health_Underwriting_All_Policies_and_Rules.json",
+  "extraction_model": "gemini-3.8-flash",
+  "analysis_status": "completed",
+  "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+  "policy_count": 15,
+  "rule_count": 61,
+  "policies": [
+    {
+      "policy_name": "SecureLife Health Shield — Customer Eligibility Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Establishes baseline applicant eligibility criteria including entry age limits, policy term parameters, and proposal field completeness.",
+        "rules": [
+          {
+            "source_rule_id": "001-001",
+            "topic": "Minimum entry age",
+            "rule_text": "Applicants under 18 years of age are ineligible and must be referred.",
+            "condition": "age_years < 18",
+            "action": "INELIGIBLE_REFER",
+            "required_evidence": [
+              "date_of_birth"
+            ],
+            "applies_when": "age_years < 18",
+            "source_quote": "age_years < 18",
+            "source_pointer": "/policies/0/rules/0",
+            "original_rule": {
+              "rule_id": "001-001",
+              "name": "Minimum entry age",
+              "condition": "age_years < 18",
+              "action": "INELIGIBLE_REFER",
+              "required_evidence": [
+                "date_of_birth"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "001-002",
+            "topic": "Maximum entry age",
+            "rule_text": "Applicants over 65 years of age are ineligible and must be referred.",
+            "condition": "age_years > 65",
+            "action": "INELIGIBLE_REFER",
+            "required_evidence": [
+              "date_of_birth"
+            ],
+            "applies_when": "age_years > 65",
+            "source_quote": "age_years > 65",
+            "source_pointer": "/policies/0/rules/1",
+            "original_rule": {
+              "rule_id": "001-002",
+              "name": "Maximum entry age",
+              "condition": "age_years > 65",
+              "action": "INELIGIBLE_REFER",
+              "required_evidence": [
+                "date_of_birth"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "001-003",
+            "topic": "Product and term",
+            "rule_text": "If the selected policy term is not equal to 1 year, request a correction.",
+            "condition": "policy_term_years != 1",
+            "action": "REQUEST_CORRECTION",
+            "required_evidence": [
+              "product",
+              "policy_term_years"
+            ],
+            "applies_when": "policy_term_years != 1",
+            "source_quote": "policy_term_years != 1",
+            "source_pointer": "/policies/0/rules/2",
+            "original_rule": {
+              "rule_id": "001-003",
+              "name": "Product and term",
+              "condition": "policy_term_years != 1",
+              "action": "REQUEST_CORRECTION",
+              "required_evidence": [
+                "product",
+                "policy_term_years"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "001-004",
+            "topic": "Missing proposal fields",
+            "rule_text": "If required application fields are incomplete, request supporting documents.",
+            "condition": "required_application_fields_complete == false",
+            "action": "REQUEST_DOCUMENTS",
+            "required_evidence": [
+              "application_form"
+            ],
+            "applies_when": "required_application_fields_complete == false",
+            "source_quote": "required_application_fields_complete == false",
+            "source_pointer": "/policies/0/rules/3",
+            "original_rule": {
+              "rule_id": "001-004",
+              "name": "Missing proposal fields",
+              "condition": "required_application_fields_complete == false",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What specific exceptions or products allow coverage outside the 18-65 entry age bracket?"
+        ],
+        "source_policy_id": "SLI-HLT-001",
+        "category": "eligibility",
+        "original_policy": {
+          "policy_id": "SLI-HLT-001",
+          "policy_name": "Customer Eligibility Policy",
+          "category": "eligibility",
+          "rules": [
+            {
+              "rule_id": "001-001",
+              "name": "Minimum entry age",
+              "condition": "age_years < 18",
+              "action": "INELIGIBLE_REFER",
+              "required_evidence": [
+                "date_of_birth"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "001-002",
+              "name": "Maximum entry age",
+              "condition": "age_years > 65",
+              "action": "INELIGIBLE_REFER",
+              "required_evidence": [
+                "date_of_birth"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "001-003",
+              "name": "Product and term",
+              "condition": "policy_term_years != 1",
+              "action": "REQUEST_CORRECTION",
+              "required_evidence": [
+                "product",
+                "policy_term_years"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "001-004",
+              "name": "Missing proposal fields",
+              "condition": "required_application_fields_complete == false",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — KYC Verification Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Governs identity and address verification, identifying data mismatches, and suspected document tampering.",
+        "rules": [
+          {
+            "source_rule_id": "002-001",
+            "topic": "Identity verification",
+            "rule_text": "If identity is not verified, place the application on KYC hold.",
+            "condition": "identity_verified != true",
+            "action": "KYC_HOLD",
+            "required_evidence": [
+              "identity_verification_record"
+            ],
+            "applies_when": "identity_verified != true",
+            "source_quote": "identity_verified != true",
+            "source_pointer": "/policies/1/rules/0",
+            "original_rule": {
+              "rule_id": "002-001",
+              "name": "Identity verification",
+              "condition": "identity_verified != true",
+              "action": "KYC_HOLD",
+              "required_evidence": [
+                "identity_verification_record"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "002-002",
+            "topic": "Address verification",
+            "rule_text": "If address is not verified, place the application on KYC hold.",
+            "condition": "address_verified != true",
+            "action": "KYC_HOLD",
+            "required_evidence": [
+              "address_evidence"
+            ],
+            "applies_when": "address_verified != true",
+            "source_quote": "address_verified != true",
+            "source_pointer": "/policies/1/rules/1",
+            "original_rule": {
+              "rule_id": "002-002",
+              "name": "Address verification",
+              "condition": "address_verified != true",
+              "action": "KYC_HOLD",
+              "required_evidence": [
+                "address_evidence"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "002-003",
+            "topic": "Identity mismatch",
+            "rule_text": "If an identity data mismatch is detected, trigger manual review.",
+            "condition": "identity_data_mismatch == true",
+            "action": "MANUAL_REVIEW",
+            "required_evidence": [
+              "application_form",
+              "identity_verification_record"
+            ],
+            "applies_when": "identity_data_mismatch == true",
+            "source_quote": "identity_data_mismatch == true",
+            "source_pointer": "/policies/1/rules/2",
+            "original_rule": {
+              "rule_id": "002-003",
+              "name": "Identity mismatch",
+              "condition": "identity_data_mismatch == true",
+              "action": "MANUAL_REVIEW",
+              "required_evidence": [
+                "application_form",
+                "identity_verification_record"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "002-004",
+            "topic": "Document integrity",
+            "rule_text": "If document tampering is suspected, initiate a fraud review.",
+            "condition": "document_tampering_suspected == true",
+            "action": "FRAUD_REVIEW",
+            "required_evidence": [
+              "submitted_documents"
+            ],
+            "applies_when": "document_tampering_suspected == true",
+            "source_quote": "document_tampering_suspected == true",
+            "source_pointer": "/policies/1/rules/3",
+            "original_rule": {
+              "rule_id": "002-004",
+              "name": "Document integrity",
+              "condition": "document_tampering_suspected == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "submitted_documents"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What official identity documents qualify as acceptable identity_verification_record types?"
+        ],
+        "source_policy_id": "SLI-KYC-002",
+        "category": "compliance",
+        "original_policy": {
+          "policy_id": "SLI-KYC-002",
+          "policy_name": "KYC Verification Policy",
+          "category": "compliance",
+          "rules": [
+            {
+              "rule_id": "002-001",
+              "name": "Identity verification",
+              "condition": "identity_verified != true",
+              "action": "KYC_HOLD",
+              "required_evidence": [
+                "identity_verification_record"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "002-002",
+              "name": "Address verification",
+              "condition": "address_verified != true",
+              "action": "KYC_HOLD",
+              "required_evidence": [
+                "address_evidence"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "002-003",
+              "name": "Identity mismatch",
+              "condition": "identity_data_mismatch == true",
+              "action": "MANUAL_REVIEW",
+              "required_evidence": [
+                "application_form",
+                "identity_verification_record"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "002-004",
+              "name": "Document integrity",
+              "condition": "document_tampering_suspected == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "submitted_documents"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Anti-Money Laundering Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Mandates screening for sanctions, politically exposed persons (PEP), suspicious payment indicators, and source of funds validation.",
+        "rules": [
+          {
+            "source_rule_id": "003-001",
+            "topic": "Sanctions screening",
+            "rule_text": "If sanctions screening is not clear, place the application on compliance hold.",
+            "condition": "sanctions_screening_clear != true",
+            "action": "COMPLIANCE_HOLD",
+            "required_evidence": [
+              "screening_result"
+            ],
+            "applies_when": "sanctions_screening_clear != true",
+            "source_quote": "sanctions_screening_clear != true",
+            "source_pointer": "/policies/2/rules/0",
+            "original_rule": {
+              "rule_id": "003-001",
+              "name": "Sanctions screening",
+              "condition": "sanctions_screening_clear != true",
+              "action": "COMPLIANCE_HOLD",
+              "required_evidence": [
+                "screening_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "003-002",
+            "topic": "PEP due diligence",
+            "rule_text": "If the applicant is flagged as a politically exposed person, conduct enhanced due diligence.",
+            "condition": "pep_indicator == true",
+            "action": "ENHANCED_DUE_DILIGENCE",
+            "required_evidence": [
+              "pep_screening_result"
+            ],
+            "applies_when": "pep_indicator == true",
+            "source_quote": "pep_indicator == true",
+            "source_pointer": "/policies/2/rules/1",
+            "original_rule": {
+              "rule_id": "003-002",
+              "name": "PEP due diligence",
+              "condition": "pep_indicator == true",
+              "action": "ENHANCED_DUE_DILIGENCE",
+              "required_evidence": [
+                "pep_screening_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "003-003",
+            "topic": "Suspicious payments",
+            "rule_text": "If a suspicious payment indicator is detected, refer for AML review.",
+            "condition": "suspicious_payment_indicator == true",
+            "action": "AML_REVIEW",
+            "required_evidence": [
+              "payment_records"
+            ],
+            "applies_when": "suspicious_payment_indicator == true",
+            "source_quote": "suspicious_payment_indicator == true",
+            "source_pointer": "/policies/2/rules/2",
+            "original_rule": {
+              "rule_id": "003-003",
+              "name": "Suspicious payments",
+              "condition": "suspicious_payment_indicator == true",
+              "action": "AML_REVIEW",
+              "required_evidence": [
+                "payment_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "003-004",
+            "topic": "Source of funds",
+            "rule_text": "If source of funds verification is required but not completed, request funding documents.",
+            "condition": "source_of_funds_required == true and source_of_funds_verified != true",
+            "action": "REQUEST_DOCUMENTS",
+            "required_evidence": [
+              "funding_evidence"
+            ],
+            "applies_when": "source_of_funds_required == true and source_of_funds_verified != true",
+            "source_quote": "source_of_funds_required == true and source_of_funds_verified != true",
+            "source_pointer": "/policies/2/rules/3",
+            "original_rule": {
+              "rule_id": "003-004",
+              "name": "Source of funds",
+              "condition": "source_of_funds_required == true and source_of_funds_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "funding_evidence"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What specific premium threshold triggers mandatory source_of_funds_required checks?"
+        ],
+        "source_policy_id": "SLI-AML-003",
+        "category": "compliance",
+        "original_policy": {
+          "policy_id": "SLI-AML-003",
+          "policy_name": "Anti-Money Laundering Policy",
+          "category": "compliance",
+          "rules": [
+            {
+              "rule_id": "003-001",
+              "name": "Sanctions screening",
+              "condition": "sanctions_screening_clear != true",
+              "action": "COMPLIANCE_HOLD",
+              "required_evidence": [
+                "screening_result"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "003-002",
+              "name": "PEP due diligence",
+              "condition": "pep_indicator == true",
+              "action": "ENHANCED_DUE_DILIGENCE",
+              "required_evidence": [
+                "pep_screening_result"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "003-003",
+              "name": "Suspicious payments",
+              "condition": "suspicious_payment_indicator == true",
+              "action": "AML_REVIEW",
+              "required_evidence": [
+                "payment_records"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "003-004",
+              "name": "Source of funds",
+              "condition": "source_of_funds_required == true and source_of_funds_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "funding_evidence"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Medical Underwriting Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Covers medical disclosures, requested health records, prescription consistency, recent hospitalizations, and specific condition monitoring.",
+        "rules": [
+          {
+            "source_rule_id": "004-001",
+            "topic": "Disclosed medical condition",
+            "rule_text": "If one or more pre-existing conditions are disclosed, refer the file for medical review.",
+            "condition": "pre_existing_conditions_count > 0",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "medical_declaration"
+            ],
+            "applies_when": "pre_existing_conditions_count > 0",
+            "source_quote": "pre_existing_conditions_count > 0",
+            "source_pointer": "/policies/3/rules/0",
+            "original_rule": {
+              "rule_id": "004-001",
+              "name": "Disclosed medical condition",
+              "condition": "pre_existing_conditions_count > 0",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "004-002",
+            "topic": "Medical records requested",
+            "rule_text": "If medical records are required but incomplete, request laboratory reports and consultation records.",
+            "condition": "medical_records_required == true and medical_records_complete != true",
+            "action": "REQUEST_DOCUMENTS",
+            "required_evidence": [
+              "lab_reports",
+              "consultation_records"
+            ],
+            "applies_when": "medical_records_required == true and medical_records_complete != true",
+            "source_quote": "medical_records_required == true and medical_records_complete != true",
+            "source_pointer": "/policies/3/rules/1",
+            "original_rule": {
+              "rule_id": "004-002",
+              "name": "Medical records requested",
+              "condition": "medical_records_required == true and medical_records_complete != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "lab_reports",
+                "consultation_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "004-003",
+            "topic": "Medication consistency",
+            "rule_text": "If a conflict exists in medication disclosure, refer for medical review.",
+            "condition": "medication_disclosure_conflict == true",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "prescriptions",
+              "medical_declaration"
+            ],
+            "applies_when": "medication_disclosure_conflict == true",
+            "source_quote": "medication_disclosure_conflict == true",
+            "source_pointer": "/policies/3/rules/2",
+            "original_rule": {
+              "rule_id": "004-003",
+              "name": "Medication consistency",
+              "condition": "medication_disclosure_conflict == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "prescriptions",
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "004-004",
+            "topic": "Recent hospitalization",
+            "rule_text": "If hospitalization occurred within the last 5 years, refer for medical review.",
+            "condition": "hospitalization_last_5_years == true",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "discharge_summary"
+            ],
+            "applies_when": "hospitalization_last_5_years == true",
+            "source_quote": "hospitalization_last_5_years == true",
+            "source_pointer": "/policies/3/rules/3",
+            "original_rule": {
+              "rule_id": "004-004",
+              "name": "Recent hospitalization",
+              "condition": "hospitalization_last_5_years == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "discharge_summary"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "004-005",
+            "topic": "Thyroid monitoring",
+            "rule_text": "If hypothyroidism is disclosed, refer for medical review with lab reports and prescription.",
+            "condition": "hypothyroidism_disclosed == true",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "thyroid_lab_report",
+              "prescription"
+            ],
+            "applies_when": "hypothyroidism_disclosed == true",
+            "source_quote": "hypothyroidism_disclosed == true",
+            "source_pointer": "/policies/3/rules/4",
+            "original_rule": {
+              "rule_id": "004-005",
+              "name": "Thyroid monitoring",
+              "condition": "hypothyroidism_disclosed == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "thyroid_lab_report",
+                "prescription"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "Are other common chronic conditions such as hypertension or diabetes subject to dedicated underwriting rules similar to hypothyroidism?"
+        ],
+        "source_policy_id": "SLI-MED-004",
+        "category": "medical",
+        "original_policy": {
+          "policy_id": "SLI-MED-004",
+          "policy_name": "Medical Underwriting Policy",
+          "category": "medical",
+          "rules": [
+            {
+              "rule_id": "004-001",
+              "name": "Disclosed medical condition",
+              "condition": "pre_existing_conditions_count > 0",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "004-002",
+              "name": "Medical records requested",
+              "condition": "medical_records_required == true and medical_records_complete != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "lab_reports",
+                "consultation_records"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "004-003",
+              "name": "Medication consistency",
+              "condition": "medication_disclosure_conflict == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "prescriptions",
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "004-004",
+              "name": "Recent hospitalization",
+              "condition": "hospitalization_last_5_years == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "discharge_summary"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "004-005",
+              "name": "Thyroid monitoring",
+              "condition": "hypothyroidism_disclosed == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "thyroid_lab_report",
+                "prescription"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Financial Underwriting Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Specifies guidelines for financial eligibility, income verification, payment anomalies, and income discrepancy reviews.",
+        "rules": [
+          {
+            "source_rule_id": "005-001",
+            "topic": "Financial evidence when requested",
+            "rule_text": "If income proof is required and not verified, request income documentation.",
+            "condition": "income_proof_required == true and income_verified != true",
+            "action": "REQUEST_DOCUMENTS",
+            "required_evidence": [
+              "income_evidence"
+            ],
+            "applies_when": "income_proof_required == true and income_verified != true",
+            "source_quote": "income_proof_required == true and income_verified != true",
+            "source_pointer": "/policies/4/rules/0",
+            "original_rule": {
+              "rule_id": "005-001",
+              "name": "Financial evidence when requested",
+              "condition": "income_proof_required == true and income_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "income_evidence"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "005-002",
+            "topic": "Premium payment anomaly",
+            "rule_text": "If an anomaly in premium payment is detected, refer for financial review.",
+            "condition": "premium_payment_anomaly == true",
+            "action": "FINANCIAL_REVIEW",
+            "required_evidence": [
+              "payment_records"
+            ],
+            "applies_when": "premium_payment_anomaly == true",
+            "source_quote": "premium_payment_anomaly == true",
+            "source_pointer": "/policies/4/rules/1",
+            "original_rule": {
+              "rule_id": "005-002",
+              "name": "Premium payment anomaly",
+              "condition": "premium_payment_anomaly == true",
+              "action": "FINANCIAL_REVIEW",
+              "required_evidence": [
+                "payment_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "005-003",
+            "topic": "Income mismatch",
+            "rule_text": "If a material discrepancy in declared income is identified, refer for financial review.",
+            "condition": "material_income_discrepancy == true",
+            "action": "FINANCIAL_REVIEW",
+            "required_evidence": [
+              "income_evidence",
+              "application_form"
+            ],
+            "applies_when": "material_income_discrepancy == true",
+            "source_quote": "material_income_discrepancy == true",
+            "source_pointer": "/policies/4/rules/2",
+            "original_rule": {
+              "rule_id": "005-003",
+              "name": "Income mismatch",
+              "condition": "material_income_discrepancy == true",
+              "action": "FINANCIAL_REVIEW",
+              "required_evidence": [
+                "income_evidence",
+                "application_form"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What quantitative variance defines a 'material_income_discrepancy'?"
+        ],
+        "source_policy_id": "SLI-FIN-005",
+        "category": "financial",
+        "original_policy": {
+          "policy_id": "SLI-FIN-005",
+          "policy_name": "Financial Underwriting Policy",
+          "category": "financial",
+          "rules": [
+            {
+              "rule_id": "005-001",
+              "name": "Financial evidence when requested",
+              "condition": "income_proof_required == true and income_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "income_evidence"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "005-002",
+              "name": "Premium payment anomaly",
+              "condition": "premium_payment_anomaly == true",
+              "action": "FINANCIAL_REVIEW",
+              "required_evidence": [
+                "payment_records"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "005-003",
+              "name": "Income mismatch",
+              "condition": "material_income_discrepancy == true",
+              "action": "FINANCIAL_REVIEW",
+              "required_evidence": [
+                "income_evidence",
+                "application_form"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Occupation Risk Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Evaluates applicant occupational hazards and captures missing occupation information.",
+        "rules": [
+          {
+            "source_rule_id": "006-001",
+            "topic": "Hazardous work",
+            "rule_text": "If the applicant's occupation is deemed hazardous, refer for occupational review.",
+            "condition": "hazardous_occupation == true",
+            "action": "OCCUPATIONAL_REVIEW",
+            "required_evidence": [
+              "occupation_declaration"
+            ],
+            "applies_when": "hazardous_occupation == true",
+            "source_quote": "hazardous_occupation == true",
+            "source_pointer": "/policies/5/rules/0",
+            "original_rule": {
+              "rule_id": "006-001",
+              "name": "Hazardous work",
+              "condition": "hazardous_occupation == true",
+              "action": "OCCUPATIONAL_REVIEW",
+              "required_evidence": [
+                "occupation_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "006-002",
+            "topic": "Occupation not declared",
+            "rule_text": "If the occupation is not declared, request the missing information.",
+            "condition": "occupation_missing == true",
+            "action": "REQUEST_INFORMATION",
+            "required_evidence": [
+              "application_form"
+            ],
+            "applies_when": "occupation_missing == true",
+            "source_quote": "occupation_missing == true",
+            "source_pointer": "/policies/5/rules/1",
+            "original_rule": {
+              "rule_id": "006-002",
+              "name": "Occupation not declared",
+              "condition": "occupation_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "Where is the master list of hazardous occupations referenced or maintained?"
+        ],
+        "source_policy_id": "SLI-OCC-006",
+        "category": "occupation",
+        "original_policy": {
+          "policy_id": "SLI-OCC-006",
+          "policy_name": "Occupation Risk Policy",
+          "category": "occupation",
+          "rules": [
+            {
+              "rule_id": "006-001",
+              "name": "Hazardous work",
+              "condition": "hazardous_occupation == true",
+              "action": "OCCUPATIONAL_REVIEW",
+              "required_evidence": [
+                "occupation_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "006-002",
+              "name": "Occupation not declared",
+              "condition": "occupation_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Health Insurance Coverage Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Sets boundaries on sum insured amounts, waiting period disclosures, and policy exclusion acknowledgements.",
+        "rules": [
+          {
+            "source_rule_id": "007-001",
+            "topic": "Minimum coverage",
+            "rule_text": "If the sum insured is below 100,000 INR, conduct a product eligibility review.",
+            "condition": "sum_insured_inr < 100000",
+            "action": "PRODUCT_ELIGIBILITY_REVIEW",
+            "required_evidence": [
+              "coverage_request"
+            ],
+            "applies_when": "sum_insured_inr < 100000",
+            "source_quote": "sum_insured_inr < 100000",
+            "source_pointer": "/policies/6/rules/0",
+            "original_rule": {
+              "rule_id": "007-001",
+              "name": "Minimum coverage",
+              "condition": "sum_insured_inr < 100000",
+              "action": "PRODUCT_ELIGIBILITY_REVIEW",
+              "required_evidence": [
+                "coverage_request"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "007-002",
+            "topic": "Above sample product maximum",
+            "rule_text": "If the sum insured exceeds 2,500,000 INR, refer for senior underwriter review.",
+            "condition": "sum_insured_inr > 2500000",
+            "action": "SENIOR_REVIEW",
+            "required_evidence": [
+              "coverage_request"
+            ],
+            "applies_when": "sum_insured_inr > 2500000",
+            "source_quote": "sum_insured_inr > 2500000",
+            "source_pointer": "/policies/6/rules/1",
+            "original_rule": {
+              "rule_id": "007-002",
+              "name": "Above sample product maximum",
+              "condition": "sum_insured_inr > 2500000",
+              "action": "SENIOR_REVIEW",
+              "required_evidence": [
+                "coverage_request"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "007-003",
+            "topic": "Waiting periods",
+            "rule_text": "If waiting period disclosure is incomplete, request clarification.",
+            "condition": "waiting_period_disclosure_complete != true",
+            "action": "REQUEST_CLARIFICATION",
+            "required_evidence": [
+              "product_wording"
+            ],
+            "applies_when": "waiting_period_disclosure_complete != true",
+            "source_quote": "waiting_period_disclosure_complete != true",
+            "source_pointer": "/policies/6/rules/2",
+            "original_rule": {
+              "rule_id": "007-003",
+              "name": "Waiting periods",
+              "condition": "waiting_period_disclosure_complete != true",
+              "action": "REQUEST_CLARIFICATION",
+              "required_evidence": [
+                "product_wording"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "007-004",
+            "topic": "Exclusions and co-pay",
+            "rule_text": "If coverage terms are not acknowledged, request acknowledgement from the applicant.",
+            "condition": "coverage_terms_acknowledged != true",
+            "action": "REQUEST_ACKNOWLEDGEMENT",
+            "required_evidence": [
+              "product_wording"
+            ],
+            "applies_when": "coverage_terms_acknowledged != true",
+            "source_quote": "coverage_terms_acknowledged != true",
+            "source_pointer": "/policies/6/rules/3",
+            "original_rule": {
+              "rule_id": "007-004",
+              "name": "Exclusions and co-pay",
+              "condition": "coverage_terms_acknowledged != true",
+              "action": "REQUEST_ACKNOWLEDGEMENT",
+              "required_evidence": [
+                "product_wording"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "Can applicants request sum insured amounts above 2,500,000 INR with special underwriting approval?"
+        ],
+        "source_policy_id": "SLI-COV-007",
+        "category": "coverage",
+        "original_policy": {
+          "policy_id": "SLI-COV-007",
+          "policy_name": "Health Insurance Coverage Policy",
+          "category": "coverage",
+          "rules": [
+            {
+              "rule_id": "007-001",
+              "name": "Minimum coverage",
+              "condition": "sum_insured_inr < 100000",
+              "action": "PRODUCT_ELIGIBILITY_REVIEW",
+              "required_evidence": [
+                "coverage_request"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "007-002",
+              "name": "Above sample product maximum",
+              "condition": "sum_insured_inr > 2500000",
+              "action": "SENIOR_REVIEW",
+              "required_evidence": [
+                "coverage_request"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "007-003",
+              "name": "Waiting periods",
+              "condition": "waiting_period_disclosure_complete != true",
+              "action": "REQUEST_CLARIFICATION",
+              "required_evidence": [
+                "product_wording"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "007-004",
+              "name": "Exclusions and co-pay",
+              "condition": "coverage_terms_acknowledged != true",
+              "action": "REQUEST_ACKNOWLEDGEMENT",
+              "required_evidence": [
+                "product_wording"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Premium Calculation Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Establishes controls over premium calculation, approved rate tables, age banding, medical and occupational loadings, and tax configuration.",
+        "rules": [
+          {
+            "source_rule_id": "008-001",
+            "topic": "Approved rate table",
+            "rule_text": "If an approved rate table is not available, place pricing on hold.",
+            "condition": "approved_rate_table_available != true",
+            "action": "PRICING_HOLD",
+            "required_evidence": [
+              "rate_table_version"
+            ],
+            "applies_when": "approved_rate_table_available != true",
+            "source_quote": "approved_rate_table_available != true",
+            "source_pointer": "/policies/7/rules/0",
+            "original_rule": {
+              "rule_id": "008-001",
+              "name": "Approved rate table",
+              "condition": "approved_rate_table_available != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "rate_table_version"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "008-002",
+            "topic": "Age band",
+            "rule_text": "If the age rate band is not resolved, place pricing on hold.",
+            "condition": "age_rate_band_resolved != true",
+            "action": "PRICING_HOLD",
+            "required_evidence": [
+              "date_of_birth",
+              "rate_table_version"
+            ],
+            "applies_when": "age_rate_band_resolved != true",
+            "source_quote": "age_rate_band_resolved != true",
+            "source_pointer": "/policies/7/rules/1",
+            "original_rule": {
+              "rule_id": "008-002",
+              "name": "Age band",
+              "condition": "age_rate_band_resolved != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "date_of_birth",
+                "rate_table_version"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "008-003",
+            "topic": "Medical adjustment",
+            "rule_text": "If a medical loading is required but not approved, refer for medical review.",
+            "condition": "medical_loading_required == true and medical_loading_approved != true",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "medical_underwriting_result"
+            ],
+            "applies_when": "medical_loading_required == true and medical_loading_approved != true",
+            "source_quote": "medical_loading_required == true and medical_loading_approved != true",
+            "source_pointer": "/policies/7/rules/2",
+            "original_rule": {
+              "rule_id": "008-003",
+              "name": "Medical adjustment",
+              "condition": "medical_loading_required == true and medical_loading_approved != true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_underwriting_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "008-004",
+            "topic": "Occupation adjustment",
+            "rule_text": "If an occupation loading is required but not approved, refer for occupational review.",
+            "condition": "occupation_loading_required == true and occupation_loading_approved != true",
+            "action": "OCCUPATIONAL_REVIEW",
+            "required_evidence": [
+              "occupation_review"
+            ],
+            "applies_when": "occupation_loading_required == true and occupation_loading_approved != true",
+            "source_quote": "occupation_loading_required == true and occupation_loading_approved != true",
+            "source_pointer": "/policies/7/rules/3",
+            "original_rule": {
+              "rule_id": "008-004",
+              "name": "Occupation adjustment",
+              "condition": "occupation_loading_required == true and occupation_loading_approved != true",
+              "action": "OCCUPATIONAL_REVIEW",
+              "required_evidence": [
+                "occupation_review"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "008-005",
+            "topic": "Tax treatment",
+            "rule_text": "If tax configuration is not verified, place pricing on hold.",
+            "condition": "tax_configuration_verified != true",
+            "action": "PRICING_HOLD",
+            "required_evidence": [
+              "effective_tax_configuration"
+            ],
+            "applies_when": "tax_configuration_verified != true",
+            "source_quote": "tax_configuration_verified != true",
+            "source_pointer": "/policies/7/rules/4",
+            "original_rule": {
+              "rule_id": "008-005",
+              "name": "Tax treatment",
+              "condition": "tax_configuration_verified != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "effective_tax_configuration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "008-006",
+            "topic": "Final quote",
+            "rule_text": "If underwriting clearance is not confirmed, quote remains provisional only.",
+            "condition": "underwriting_clearance != true",
+            "action": "QUOTE_PROVISIONAL_ONLY",
+            "required_evidence": [
+              "underwriting_result"
+            ],
+            "applies_when": "underwriting_clearance != true",
+            "source_quote": "underwriting_clearance != true",
+            "source_pointer": "/policies/7/rules/5",
+            "original_rule": {
+              "rule_id": "008-006",
+              "name": "Final quote",
+              "condition": "underwriting_clearance != true",
+              "action": "QUOTE_PROVISIONAL_ONLY",
+              "required_evidence": [
+                "underwriting_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "The catalog notes that no actual premium may be quoted without an approved rate table and validated tax configuration."
+        ],
+        "source_policy_id": "SLI-PRM-008",
+        "category": "pricing",
+        "original_policy": {
+          "policy_id": "SLI-PRM-008",
+          "policy_name": "Premium Calculation Policy",
+          "category": "pricing",
+          "rules": [
+            {
+              "rule_id": "008-001",
+              "name": "Approved rate table",
+              "condition": "approved_rate_table_available != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "rate_table_version"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "008-002",
+              "name": "Age band",
+              "condition": "age_rate_band_resolved != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "date_of_birth",
+                "rate_table_version"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "008-003",
+              "name": "Medical adjustment",
+              "condition": "medical_loading_required == true and medical_loading_approved != true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_underwriting_result"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "008-004",
+              "name": "Occupation adjustment",
+              "condition": "occupation_loading_required == true and occupation_loading_approved != true",
+              "action": "OCCUPATIONAL_REVIEW",
+              "required_evidence": [
+                "occupation_review"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "008-005",
+              "name": "Tax treatment",
+              "condition": "tax_configuration_verified != true",
+              "action": "PRICING_HOLD",
+              "required_evidence": [
+                "effective_tax_configuration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "008-006",
+              "name": "Final quote",
+              "condition": "underwriting_clearance != true",
+              "action": "QUOTE_PROVISIONAL_ONLY",
+              "required_evidence": [
+                "underwriting_result"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Fraud Detection Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Monitors indicators of document inconsistencies, material non-disclosure, duplicate proposals, and identity misuse.",
+        "rules": [
+          {
+            "source_rule_id": "009-001",
+            "topic": "Document inconsistency",
+            "rule_text": "If document inconsistency is detected, refer for fraud review.",
+            "condition": "document_inconsistency == true",
+            "action": "FRAUD_REVIEW",
+            "required_evidence": [
+              "submitted_documents"
+            ],
+            "applies_when": "document_inconsistency == true",
+            "source_quote": "document_inconsistency == true",
+            "source_pointer": "/policies/8/rules/0",
+            "original_rule": {
+              "rule_id": "009-001",
+              "name": "Document inconsistency",
+              "condition": "document_inconsistency == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "submitted_documents"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "009-002",
+            "topic": "Material non-disclosure indicator",
+            "rule_text": "If a material non-disclosure indicator is present, refer for fraud review.",
+            "condition": "material_nondisclosure_indicator == true",
+            "action": "FRAUD_REVIEW",
+            "required_evidence": [
+              "medical_declaration",
+              "supporting_records"
+            ],
+            "applies_when": "material_nondisclosure_indicator == true",
+            "source_quote": "material_nondisclosure_indicator == true",
+            "source_pointer": "/policies/8/rules/1",
+            "original_rule": {
+              "rule_id": "009-002",
+              "name": "Material non-disclosure indicator",
+              "condition": "material_nondisclosure_indicator == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "medical_declaration",
+                "supporting_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "009-003",
+            "topic": "Duplicate proposal",
+            "rule_text": "If a duplicate application match is found, refer for manual review.",
+            "condition": "duplicate_application_match == true",
+            "action": "MANUAL_REVIEW",
+            "required_evidence": [
+              "application_history"
+            ],
+            "applies_when": "duplicate_application_match == true",
+            "source_quote": "duplicate_application_match == true",
+            "source_pointer": "/policies/8/rules/2",
+            "original_rule": {
+              "rule_id": "009-003",
+              "name": "Duplicate proposal",
+              "condition": "duplicate_application_match == true",
+              "action": "MANUAL_REVIEW",
+              "required_evidence": [
+                "application_history"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "009-004",
+            "topic": "Identity misuse indicator",
+            "rule_text": "If an identity misuse indicator is present, refer for fraud review.",
+            "condition": "identity_misuse_indicator == true",
+            "action": "FRAUD_REVIEW",
+            "required_evidence": [
+              "kyc_records"
+            ],
+            "applies_when": "identity_misuse_indicator == true",
+            "source_quote": "identity_misuse_indicator == true",
+            "source_pointer": "/policies/8/rules/3",
+            "original_rule": {
+              "rule_id": "009-004",
+              "name": "Identity misuse indicator",
+              "condition": "identity_misuse_indicator == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "kyc_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What specific threshold flags an application as a duplicate match?"
+        ],
+        "source_policy_id": "SLI-FRD-009",
+        "category": "fraud",
+        "original_policy": {
+          "policy_id": "SLI-FRD-009",
+          "policy_name": "Fraud Detection Policy",
+          "category": "fraud",
+          "rules": [
+            {
+              "rule_id": "009-001",
+              "name": "Document inconsistency",
+              "condition": "document_inconsistency == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "submitted_documents"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "009-002",
+              "name": "Material non-disclosure indicator",
+              "condition": "material_nondisclosure_indicator == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "medical_declaration",
+                "supporting_records"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "009-003",
+              "name": "Duplicate proposal",
+              "condition": "duplicate_application_match == true",
+              "action": "MANUAL_REVIEW",
+              "required_evidence": [
+                "application_history"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "009-004",
+              "name": "Identity misuse indicator",
+              "condition": "identity_misuse_indicator == true",
+              "action": "FRAUD_REVIEW",
+              "required_evidence": [
+                "kyc_records"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Underwriting Decision Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Outlines prerequisites for final underwriting sign-off, handling open verifications, pending medical reviews, compliance holds, and authority limits.",
+        "rules": [
+          {
+            "source_rule_id": "010-001",
+            "topic": "Open verification",
+            "rule_text": "If mandatory verifications are not complete, mark status as pending documents.",
+            "condition": "mandatory_verifications_complete != true",
+            "action": "PENDING_DOCUMENTS",
+            "required_evidence": [
+              "verification_status"
+            ],
+            "applies_when": "mandatory_verifications_complete != true",
+            "source_quote": "mandatory_verifications_complete != true",
+            "source_pointer": "/policies/9/rules/0",
+            "original_rule": {
+              "rule_id": "010-001",
+              "name": "Open verification",
+              "condition": "mandatory_verifications_complete != true",
+              "action": "PENDING_DOCUMENTS",
+              "required_evidence": [
+                "verification_status"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "010-002",
+            "topic": "Medical review open",
+            "rule_text": "If medical review is not complete, mark status as pending medical review.",
+            "condition": "medical_review_complete != true",
+            "action": "PENDING_MEDICAL_REVIEW",
+            "required_evidence": [
+              "medical_review_result"
+            ],
+            "applies_when": "medical_review_complete != true",
+            "source_quote": "medical_review_complete != true",
+            "source_pointer": "/policies/9/rules/1",
+            "original_rule": {
+              "rule_id": "010-002",
+              "name": "Medical review open",
+              "condition": "medical_review_complete != true",
+              "action": "PENDING_MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_review_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "010-003",
+            "topic": "Compliance hold",
+            "rule_text": "If compliance clearance is not obtained, place application on compliance hold.",
+            "condition": "compliance_clearance != true",
+            "action": "COMPLIANCE_HOLD",
+            "required_evidence": [
+              "compliance_result"
+            ],
+            "applies_when": "compliance_clearance != true",
+            "source_quote": "compliance_clearance != true",
+            "source_pointer": "/policies/9/rules/2",
+            "original_rule": {
+              "rule_id": "010-003",
+              "name": "Compliance hold",
+              "condition": "compliance_clearance != true",
+              "action": "COMPLIANCE_HOLD",
+              "required_evidence": [
+                "compliance_result"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "010-004",
+            "topic": "Authority limits",
+            "rule_text": "If senior authority is required, refer the file for senior review.",
+            "condition": "senior_authority_required == true",
+            "action": "SENIOR_REVIEW",
+            "required_evidence": [
+              "delegated_authority_matrix"
+            ],
+            "applies_when": "senior_authority_required == true",
+            "source_quote": "senior_authority_required == true",
+            "source_pointer": "/policies/9/rules/3",
+            "original_rule": {
+              "rule_id": "010-004",
+              "name": "Authority limits",
+              "condition": "senior_authority_required == true",
+              "action": "SENIOR_REVIEW",
+              "required_evidence": [
+                "delegated_authority_matrix"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "010-005",
+            "topic": "Human sign-off",
+            "rule_text": "If an authorized underwriter has not approved the file, prohibit policy issuance.",
+            "condition": "authorized_underwriter_approved != true",
+            "action": "NO_POLICY_ISSUANCE",
+            "required_evidence": [
+              "underwriter_decision"
+            ],
+            "applies_when": "authorized_underwriter_approved != true",
+            "source_quote": "authorized_underwriter_approved != true",
+            "source_pointer": "/policies/9/rules/4",
+            "original_rule": {
+              "rule_id": "010-005",
+              "name": "Human sign-off",
+              "condition": "authorized_underwriter_approved != true",
+              "action": "NO_POLICY_ISSUANCE",
+              "required_evidence": [
+                "underwriter_decision"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "Where is the delegated authority matrix detailed for senior underwriter escalations?"
+        ],
+        "source_policy_id": "SLI-DEC-010",
+        "category": "decision",
+        "original_policy": {
+          "policy_id": "SLI-DEC-010",
+          "policy_name": "Underwriting Decision Policy",
+          "category": "decision",
+          "rules": [
+            {
+              "rule_id": "010-001",
+              "name": "Open verification",
+              "condition": "mandatory_verifications_complete != true",
+              "action": "PENDING_DOCUMENTS",
+              "required_evidence": [
+                "verification_status"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "010-002",
+              "name": "Medical review open",
+              "condition": "medical_review_complete != true",
+              "action": "PENDING_MEDICAL_REVIEW",
+              "required_evidence": [
+                "medical_review_result"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "010-003",
+              "name": "Compliance hold",
+              "condition": "compliance_clearance != true",
+              "action": "COMPLIANCE_HOLD",
+              "required_evidence": [
+                "compliance_result"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "010-004",
+              "name": "Authority limits",
+              "condition": "senior_authority_required == true",
+              "action": "SENIOR_REVIEW",
+              "required_evidence": [
+                "delegated_authority_matrix"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "010-005",
+              "name": "Human sign-off",
+              "condition": "authorized_underwriter_approved != true",
+              "action": "NO_POLICY_ISSUANCE",
+              "required_evidence": [
+                "underwriter_decision"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Data Privacy Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Enforces data protection requirements such as lawful processing bases, restricted medical access, retention compliance, and audit logging.",
+        "rules": [
+          {
+            "source_rule_id": "011-001",
+            "topic": "Lawful processing",
+            "rule_text": "If lawful processing basis is not confirmed, place a hold on data processing.",
+            "condition": "lawful_processing_basis_confirmed != true",
+            "action": "DATA_HOLD",
+            "required_evidence": [
+              "consent_or_lawful_basis_record"
+            ],
+            "applies_when": "lawful_processing_basis_confirmed != true",
+            "source_quote": "lawful_processing_basis_confirmed != true",
+            "source_pointer": "/policies/10/rules/0",
+            "original_rule": {
+              "rule_id": "011-001",
+              "name": "Lawful processing",
+              "condition": "lawful_processing_basis_confirmed != true",
+              "action": "DATA_HOLD",
+              "required_evidence": [
+                "consent_or_lawful_basis_record"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "011-002",
+            "topic": "Restricted medical access",
+            "rule_text": "If access to medical data is not authorized, deny access.",
+            "condition": "medical_data_access_authorized != true",
+            "action": "ACCESS_DENIED",
+            "required_evidence": [
+              "access_log",
+              "role_permissions"
+            ],
+            "applies_when": "medical_data_access_authorized != true",
+            "source_quote": "medical_data_access_authorized != true",
+            "source_pointer": "/policies/10/rules/1",
+            "original_rule": {
+              "rule_id": "011-002",
+              "name": "Restricted medical access",
+              "condition": "medical_data_access_authorized != true",
+              "action": "ACCESS_DENIED",
+              "required_evidence": [
+                "access_log",
+                "role_permissions"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "011-003",
+            "topic": "Retention compliance",
+            "rule_text": "If retention schedule has not been applied, initiate a compliance review.",
+            "condition": "retention_schedule_applied != true",
+            "action": "COMPLIANCE_REVIEW",
+            "required_evidence": [
+              "retention_policy"
+            ],
+            "applies_when": "retention_schedule_applied != true",
+            "source_quote": "retention_schedule_applied != true",
+            "source_pointer": "/policies/10/rules/2",
+            "original_rule": {
+              "rule_id": "011-003",
+              "name": "Retention compliance",
+              "condition": "retention_schedule_applied != true",
+              "action": "COMPLIANCE_REVIEW",
+              "required_evidence": [
+                "retention_policy"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "011-004",
+            "topic": "Audit logging",
+            "rule_text": "If processing audit logging is not enabled, place system on hold.",
+            "condition": "processing_audit_log_enabled != true",
+            "action": "SYSTEM_HOLD",
+            "required_evidence": [
+              "audit_configuration"
+            ],
+            "applies_when": "processing_audit_log_enabled != true",
+            "source_quote": "processing_audit_log_enabled != true",
+            "source_pointer": "/policies/10/rules/3",
+            "original_rule": {
+              "rule_id": "011-004",
+              "name": "Audit logging",
+              "condition": "processing_audit_log_enabled != true",
+              "action": "SYSTEM_HOLD",
+              "required_evidence": [
+                "audit_configuration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What data retention schedules apply to withdrawn or declined proposals?"
+        ],
+        "source_policy_id": "SLI-DAT-011",
+        "category": "privacy",
+        "original_policy": {
+          "policy_id": "SLI-DAT-011",
+          "policy_name": "Data Privacy Policy",
+          "category": "privacy",
+          "rules": [
+            {
+              "rule_id": "011-001",
+              "name": "Lawful processing",
+              "condition": "lawful_processing_basis_confirmed != true",
+              "action": "DATA_HOLD",
+              "required_evidence": [
+                "consent_or_lawful_basis_record"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "011-002",
+              "name": "Restricted medical access",
+              "condition": "medical_data_access_authorized != true",
+              "action": "ACCESS_DENIED",
+              "required_evidence": [
+                "access_log",
+                "role_permissions"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "011-003",
+              "name": "Retention compliance",
+              "condition": "retention_schedule_applied != true",
+              "action": "COMPLIANCE_REVIEW",
+              "required_evidence": [
+                "retention_policy"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "011-004",
+              "name": "Audit logging",
+              "condition": "processing_audit_log_enabled != true",
+              "action": "SYSTEM_HOLD",
+              "required_evidence": [
+                "audit_configuration"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — AI Underwriting Governance Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Mandates evidence citations, policy citations, uncertainty thresholds, human decision authority, and execution trace logging for AI-assisted underwriting.",
+        "rules": [
+          {
+            "source_rule_id": "012-001",
+            "topic": "Evidence citation",
+            "rule_text": "If an AI recommendation lacks evidence citations, route to human review.",
+            "condition": "recommendation_has_evidence != true",
+            "action": "HUMAN_REVIEW",
+            "required_evidence": [
+              "source_documents"
+            ],
+            "applies_when": "recommendation_has_evidence != true",
+            "source_quote": "recommendation_has_evidence != true",
+            "source_pointer": "/policies/11/rules/0",
+            "original_rule": {
+              "rule_id": "012-001",
+              "name": "Evidence citation",
+              "condition": "recommendation_has_evidence != true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "source_documents"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "012-002",
+            "topic": "Policy citation",
+            "rule_text": "If an AI recommendation lacks rule IDs, route to human review.",
+            "condition": "recommendation_has_rule_ids != true",
+            "action": "HUMAN_REVIEW",
+            "required_evidence": [
+              "policy_rule_matches"
+            ],
+            "applies_when": "recommendation_has_rule_ids != true",
+            "source_quote": "recommendation_has_rule_ids != true",
+            "source_pointer": "/policies/11/rules/1",
+            "original_rule": {
+              "rule_id": "012-002",
+              "name": "Policy citation",
+              "condition": "recommendation_has_rule_ids != true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "policy_rule_matches"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "012-003",
+            "topic": "Uncertain extraction",
+            "rule_text": "If data extraction confidence is below threshold, route to human review.",
+            "condition": "extraction_confidence_below_threshold == true",
+            "action": "HUMAN_REVIEW",
+            "required_evidence": [
+              "extraction_trace"
+            ],
+            "applies_when": "extraction_confidence_below_threshold == true",
+            "source_quote": "extraction_confidence_below_threshold == true",
+            "source_pointer": "/policies/11/rules/2",
+            "original_rule": {
+              "rule_id": "012-003",
+              "name": "Uncertain extraction",
+              "condition": "extraction_confidence_below_threshold == true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "extraction_trace"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "012-004",
+            "topic": "Human decision authority",
+            "rule_text": "If an AI-only final decision is attempted, block the final decision.",
+            "condition": "ai_only_final_decision_attempt == true",
+            "action": "BLOCK_FINAL_DECISION",
+            "required_evidence": [
+              "authorization_log"
+            ],
+            "applies_when": "ai_only_final_decision_attempt == true",
+            "source_quote": "ai_only_final_decision_attempt == true",
+            "source_pointer": "/policies/11/rules/3",
+            "original_rule": {
+              "rule_id": "012-004",
+              "name": "Human decision authority",
+              "condition": "ai_only_final_decision_attempt == true",
+              "action": "BLOCK_FINAL_DECISION",
+              "required_evidence": [
+                "authorization_log"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "012-005",
+            "topic": "Model trace",
+            "rule_text": "If model version is not logged, place system on hold.",
+            "condition": "model_version_logged != true",
+            "action": "SYSTEM_HOLD",
+            "required_evidence": [
+              "model_execution_log"
+            ],
+            "applies_when": "model_version_logged != true",
+            "source_quote": "model_version_logged != true",
+            "source_pointer": "/policies/11/rules/4",
+            "original_rule": {
+              "rule_id": "012-005",
+              "name": "Model trace",
+              "condition": "model_version_logged != true",
+              "action": "SYSTEM_HOLD",
+              "required_evidence": [
+                "model_execution_log"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What specific numerical value defines 'extraction_confidence_below_threshold'?"
+        ],
+        "source_policy_id": "SLI-AI-012",
+        "category": "ai_governance",
+        "original_policy": {
+          "policy_id": "SLI-AI-012",
+          "policy_name": "AI Underwriting Governance Policy",
+          "category": "ai_governance",
+          "rules": [
+            {
+              "rule_id": "012-001",
+              "name": "Evidence citation",
+              "condition": "recommendation_has_evidence != true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "source_documents"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "012-002",
+              "name": "Policy citation",
+              "condition": "recommendation_has_rule_ids != true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "policy_rule_matches"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "012-003",
+              "name": "Uncertain extraction",
+              "condition": "extraction_confidence_below_threshold == true",
+              "action": "HUMAN_REVIEW",
+              "required_evidence": [
+                "extraction_trace"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "012-004",
+              "name": "Human decision authority",
+              "condition": "ai_only_final_decision_attempt == true",
+              "action": "BLOCK_FINAL_DECISION",
+              "required_evidence": [
+                "authorization_log"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "012-005",
+              "name": "Model trace",
+              "condition": "model_version_logged != true",
+              "action": "SYSTEM_HOLD",
+              "required_evidence": [
+                "model_execution_log"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Pre-Existing Disease Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Governs disclosure, onset date verification, waiting period application, and continuity benefit validation for pre-existing diseases.",
+        "rules": [
+          {
+            "source_rule_id": "013-001",
+            "topic": "Condition disclosure",
+            "rule_text": "If a pre-existing disease is disclosed, initiate a PED review.",
+            "condition": "pre_existing_disease_disclosed == true",
+            "action": "PED_REVIEW",
+            "required_evidence": [
+              "medical_declaration"
+            ],
+            "applies_when": "pre_existing_disease_disclosed == true",
+            "source_quote": "pre_existing_disease_disclosed == true",
+            "source_pointer": "/policies/12/rules/0",
+            "original_rule": {
+              "rule_id": "013-001",
+              "name": "Condition disclosure",
+              "condition": "pre_existing_disease_disclosed == true",
+              "action": "PED_REVIEW",
+              "required_evidence": [
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "013-002",
+            "topic": "Disease onset date",
+            "rule_text": "If the onset date of the pre-existing disease is missing, request medical history information.",
+            "condition": "ped_onset_date_missing == true",
+            "action": "REQUEST_INFORMATION",
+            "required_evidence": [
+              "medical_history"
+            ],
+            "applies_when": "ped_onset_date_missing == true",
+            "source_quote": "ped_onset_date_missing == true",
+            "source_pointer": "/policies/12/rules/1",
+            "original_rule": {
+              "rule_id": "013-002",
+              "name": "Disease onset date",
+              "condition": "ped_onset_date_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "medical_history"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "013-003",
+            "topic": "Applicable waiting period",
+            "rule_text": "If the pre-existing disease waiting period is not verified, conduct a policy terms review.",
+            "condition": "ped_waiting_period_verified != true",
+            "action": "POLICY_TERMS_REVIEW",
+            "required_evidence": [
+              "approved_product_wording",
+              "continuity_record"
+            ],
+            "applies_when": "ped_waiting_period_verified != true",
+            "source_quote": "ped_waiting_period_verified != true",
+            "source_pointer": "/policies/12/rules/2",
+            "original_rule": {
+              "rule_id": "013-003",
+              "name": "Applicable waiting period",
+              "condition": "ped_waiting_period_verified != true",
+              "action": "POLICY_TERMS_REVIEW",
+              "required_evidence": [
+                "approved_product_wording",
+                "continuity_record"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "013-004",
+            "topic": "Continuity benefit",
+            "rule_text": "If prior continuous coverage is claimed but continuity is unverified, verify prior coverage records.",
+            "condition": "prior_continuous_coverage_claimed == true and continuity_verified != true",
+            "action": "VERIFY_PRIOR_COVERAGE",
+            "required_evidence": [
+              "prior_policy_records"
+            ],
+            "applies_when": "prior_continuous_coverage_claimed == true and continuity_verified != true",
+            "source_quote": "prior_continuous_coverage_claimed == true and continuity_verified != true",
+            "source_pointer": "/policies/12/rules/3",
+            "original_rule": {
+              "rule_id": "013-004",
+              "name": "Continuity benefit",
+              "condition": "prior_continuous_coverage_claimed == true and continuity_verified != true",
+              "action": "VERIFY_PRIOR_COVERAGE",
+              "required_evidence": [
+                "prior_policy_records"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What specific documentation suffices to verify continuity credits across different prior insurers?"
+        ],
+        "source_policy_id": "SLI-PED-013",
+        "category": "pre_existing_disease",
+        "original_policy": {
+          "policy_id": "SLI-PED-013",
+          "policy_name": "Pre-Existing Disease Policy",
+          "category": "pre_existing_disease",
+          "rules": [
+            {
+              "rule_id": "013-001",
+              "name": "Condition disclosure",
+              "condition": "pre_existing_disease_disclosed == true",
+              "action": "PED_REVIEW",
+              "required_evidence": [
+                "medical_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "013-002",
+              "name": "Disease onset date",
+              "condition": "ped_onset_date_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "medical_history"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "013-003",
+              "name": "Applicable waiting period",
+              "condition": "ped_waiting_period_verified != true",
+              "action": "POLICY_TERMS_REVIEW",
+              "required_evidence": [
+                "approved_product_wording",
+                "continuity_record"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "013-004",
+              "name": "Continuity benefit",
+              "condition": "prior_continuous_coverage_claimed == true and continuity_verified != true",
+              "action": "VERIFY_PRIOR_COVERAGE",
+              "required_evidence": [
+                "prior_policy_records"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Previous Claims History Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Establishes requirements for declaring prior insurance claims, identifying claims discrepancies, and reviewing prior hospitalizations.",
+        "rules": [
+          {
+            "source_rule_id": "014-001",
+            "topic": "Claims disclosure missing",
+            "rule_text": "If the prior claims declaration is missing, request claims information.",
+            "condition": "prior_claims_declaration_missing == true",
+            "action": "REQUEST_INFORMATION",
+            "required_evidence": [
+              "claims_declaration"
+            ],
+            "applies_when": "prior_claims_declaration_missing == true",
+            "source_quote": "prior_claims_declaration_missing == true",
+            "source_pointer": "/policies/13/rules/0",
+            "original_rule": {
+              "rule_id": "014-001",
+              "name": "Claims disclosure missing",
+              "condition": "prior_claims_declaration_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "claims_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "014-002",
+            "topic": "Material claims discrepancy",
+            "rule_text": "If a material discrepancy in prior claims history is found, refer for claims history review.",
+            "condition": "prior_claims_discrepancy == true",
+            "action": "CLAIMS_HISTORY_REVIEW",
+            "required_evidence": [
+              "claims_history",
+              "prior_policy_record"
+            ],
+            "applies_when": "prior_claims_discrepancy == true",
+            "source_quote": "prior_claims_discrepancy == true",
+            "source_pointer": "/policies/13/rules/1",
+            "original_rule": {
+              "rule_id": "014-002",
+              "name": "Material claims discrepancy",
+              "condition": "prior_claims_discrepancy == true",
+              "action": "CLAIMS_HISTORY_REVIEW",
+              "required_evidence": [
+                "claims_history",
+                "prior_policy_record"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "014-003",
+            "topic": "Prior hospitalization",
+            "rule_text": "If prior hospitalization is disclosed, refer for medical review.",
+            "condition": "prior_hospitalization_disclosed == true",
+            "action": "MEDICAL_REVIEW",
+            "required_evidence": [
+              "discharge_summary"
+            ],
+            "applies_when": "prior_hospitalization_disclosed == true",
+            "source_quote": "prior_hospitalization_disclosed == true",
+            "source_pointer": "/policies/13/rules/2",
+            "original_rule": {
+              "rule_id": "014-003",
+              "name": "Prior hospitalization",
+              "condition": "prior_hospitalization_disclosed == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "discharge_summary"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "How far back must claims history be declared (e.g., past 3 years vs lifetime)?"
+        ],
+        "source_policy_id": "SLI-CLM-014",
+        "category": "claims_history",
+        "original_policy": {
+          "policy_id": "SLI-CLM-014",
+          "policy_name": "Previous Claims History Policy",
+          "category": "claims_history",
+          "rules": [
+            {
+              "rule_id": "014-001",
+              "name": "Claims disclosure missing",
+              "condition": "prior_claims_declaration_missing == true",
+              "action": "REQUEST_INFORMATION",
+              "required_evidence": [
+                "claims_declaration"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "014-002",
+              "name": "Material claims discrepancy",
+              "condition": "prior_claims_discrepancy == true",
+              "action": "CLAIMS_HISTORY_REVIEW",
+              "required_evidence": [
+                "claims_history",
+                "prior_policy_record"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "014-003",
+              "name": "Prior hospitalization",
+              "condition": "prior_hospitalization_disclosed == true",
+              "action": "MEDICAL_REVIEW",
+              "required_evidence": [
+                "discharge_summary"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    },
+    {
+      "policy_name": "SecureLife Health Shield — Policy Portability Policy",
+      "insurance_type": "health",
+      "policy_kind": "company",
+      "insurer_name": "SecureLife Insurance Pvt. Ltd.",
+      "product_name": "SecureLife Health Shield",
+      "product_code": "",
+      "uin": "",
+      "version": "1.0.0",
+      "effective_from": "2026-10-16",
+      "effective_to": "",
+      "extracted_rules": {
+        "summary": "Outlines guidelines for evaluating portability applications, verifying prior policy schedules and continuity credits, and handling non-portability applications.",
+        "rules": [
+          {
+            "source_rule_id": "015-001",
+            "topic": "Portability request",
+            "rule_text": "If portability is requested, initiate a portability review.",
+            "condition": "portability_requested == true",
+            "action": "PORTABILITY_REVIEW",
+            "required_evidence": [
+              "portability_request"
+            ],
+            "applies_when": "portability_requested == true",
+            "source_quote": "portability_requested == true",
+            "source_pointer": "/policies/14/rules/0",
+            "original_rule": {
+              "rule_id": "015-001",
+              "name": "Portability request",
+              "condition": "portability_requested == true",
+              "action": "PORTABILITY_REVIEW",
+              "required_evidence": [
+                "portability_request"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "015-002",
+            "topic": "Previous policy validation",
+            "rule_text": "If portability is requested and prior policy is unverified, request prior policy schedules.",
+            "condition": "portability_requested == true and prior_policy_verified != true",
+            "action": "REQUEST_DOCUMENTS",
+            "required_evidence": [
+              "prior_policy_schedule"
+            ],
+            "applies_when": "portability_requested == true and prior_policy_verified != true",
+            "source_quote": "portability_requested == true and prior_policy_verified != true",
+            "source_pointer": "/policies/14/rules/1",
+            "original_rule": {
+              "rule_id": "015-002",
+              "name": "Previous policy validation",
+              "condition": "portability_requested == true and prior_policy_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "prior_policy_schedule"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "015-003",
+            "topic": "Continuity credits",
+            "rule_text": "If portability is requested and continuity credits are unverified, refer for portability review.",
+            "condition": "portability_requested == true and continuity_credit_verified != true",
+            "action": "PORTABILITY_REVIEW",
+            "required_evidence": [
+              "prior_coverage_history"
+            ],
+            "applies_when": "portability_requested == true and continuity_credit_verified != true",
+            "source_quote": "portability_requested == true and continuity_credit_verified != true",
+            "source_pointer": "/policies/14/rules/2",
+            "original_rule": {
+              "rule_id": "015-003",
+              "name": "Continuity credits",
+              "condition": "portability_requested == true and continuity_credit_verified != true",
+              "action": "PORTABILITY_REVIEW",
+              "required_evidence": [
+                "prior_coverage_history"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          },
+          {
+            "source_rule_id": "015-004",
+            "topic": "No portability requested",
+            "rule_text": "If portability is not requested, portability requirements are marked not applicable.",
+            "condition": "portability_requested == false",
+            "action": "NOT_APPLICABLE",
+            "required_evidence": [
+              "application_form"
+            ],
+            "applies_when": "portability_requested == false",
+            "source_quote": "portability_requested == false",
+            "source_pointer": "/policies/14/rules/3",
+            "original_rule": {
+              "rule_id": "015-004",
+              "name": "No portability requested",
+              "condition": "portability_requested == false",
+              "action": "NOT_APPLICABLE",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            },
+            "ai_explanation_available": true
+          }
+        ],
+        "review_notes": [
+          "What timeline rules apply to submitting portability requests prior to policy renewal date?"
+        ],
+        "source_policy_id": "SLI-POR-015",
+        "category": "portability",
+        "original_policy": {
+          "policy_id": "SLI-POR-015",
+          "policy_name": "Policy Portability Policy",
+          "category": "portability",
+          "rules": [
+            {
+              "rule_id": "015-001",
+              "name": "Portability request",
+              "condition": "portability_requested == true",
+              "action": "PORTABILITY_REVIEW",
+              "required_evidence": [
+                "portability_request"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "015-002",
+              "name": "Previous policy validation",
+              "condition": "portability_requested == true and prior_policy_verified != true",
+              "action": "REQUEST_DOCUMENTS",
+              "required_evidence": [
+                "prior_policy_schedule"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "015-003",
+              "name": "Continuity credits",
+              "condition": "portability_requested == true and continuity_credit_verified != true",
+              "action": "PORTABILITY_REVIEW",
+              "required_evidence": [
+                "prior_coverage_history"
+              ],
+              "automated_final_decision": false
+            },
+            {
+              "rule_id": "015-004",
+              "name": "No portability requested",
+              "condition": "portability_requested == false",
+              "action": "NOT_APPLICABLE",
+              "required_evidence": [
+                "application_form"
+              ],
+              "automated_final_decision": false
+            }
+          ]
+        },
+        "source_metadata": {
+          "company": "SecureLife Insurance Pvt. Ltd.",
+          "product": "SecureLife Health Shield",
+          "insurance_type": "Individual Health Insurance",
+          "document_type": "underwriting_policy_rule_catalog",
+          "version": "1.0.0",
+          "effective_date": "2026-10-16",
+          "status": "FICTIONAL_POC_ONLY",
+          "disclaimer": "Entire catalog is synthetic test configuration. Thresholds and conditions are not official IRDAI rules or production-approved pricing/underwriting criteria. Compliance, product wording, and taxation require independent review.",
+          "evaluation_contract": {
+            "missing_input": "UNKNOWN; request evidence; do not treat as false",
+            "rule_logic": "Illustrative human-readable conditions; do not execute with eval",
+            "multiple_matches": "Accumulate all actions; compliance holds and human review cannot be overridden by approvals",
+            "decision_authority": "Authorized human underwriter",
+            "output_fields": [
+              "application_id",
+              "evaluated_rules",
+              "matched_rules",
+              "missing_evidence",
+              "recommended_actions",
+              "review_status",
+              "policy_version"
+            ]
+          },
+          "premium_calculation": {
+            "formula": "annual_base_premium = (sum_insured_inr / 100000) * approved_age_band_rate_per_lakh * approved_term_factor; adjusted_premium = annual_base_premium * approved_medical_factor * approved_occupation_factor; apply approved discounts and applicable tax separately",
+            "note": "No actual premium may be quoted without a product-specific approved rate table and validated tax configuration"
+          }
+        },
+        "source_sha256": "f8ab7c72b6940c2a5b70f0f4a02170560ff88f67a5b72ddafe4fb9f512c8fb4a",
+        "analysis_method": "gemini_with_preserved_json_rules"
+      }
+    }
+  ]
+}

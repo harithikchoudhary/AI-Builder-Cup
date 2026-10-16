@@ -1,5 +1,32 @@
 # Insurance Knowledge Catalog SQL Agent
 
+## Employee application inbox and policy setup
+
+The employee workspace opens on Applications. Received records are marked **Ready for underwriting**. Open a record to inspect its details and source documents, switch to Underwriting pipeline, and select policies before starting. The policy library keeps the application's insurance type fixed and offers company policies matching its product code plus regulatory sources for its insurance type. Policies can be uploaded and reviewed from the same screen.
+
+Policy import follows **Upload & analyze → Review & edit → Add to policy library**. PDF, TXT, Markdown, and JSON uploads all use Gemini analysis. Structured JSON bundles preserve every policy and original rule, including conditions, actions, evidence requirements, and source pointers; Gemini supplies explanations and review questions. The review table supports editing metadata and rules, adding missing entries, removing rules, and excluding policies. Nothing is saved during analysis. Adding selected drafts stores the reviewed content and original source without regenerating it. Fictional catalogs retain their illustrative status. If Gemini is unavailable or a source exceeds the analysis limit, the upload reports an error rather than presenting a completed analysis.
+
+In the policy library, select rows (or all visible rows) and choose **Delete selected**. Confirm the named entries to remove them from future library listings and selections. Deletion records are appended in BigQuery so newly uploaded policies can be removed immediately without streaming-buffer DML restrictions. Original policy records, source documents, and application snapshots remain available for previously applied versions.
+
+The library separates **Customer policies** (company underwriting and product rules) from **Regulatory policies** (regulator sources and circulars). Each category has its own count, table, and bulk-delete selection. Application selections are retained across category switches so both groups can be applied together; clearing or deleting a selection affects only the visible category.
+
+The frontend opens in light mode with a teal sidebar and white workspace. The header has an icon-only theme switch and Settings → Manage connections for BigQuery dataset selection. Dark mode applies during the current visit; reopening or refreshing starts in light mode. Desktop layout uses an 80% application scale, while mobile retains normal-size controls. Shared color tokens in `frontend/src/theme.css` cover navigation, chat, charts, underwriting, forms, policy tables, and dialogs.
+
+**Apply policies & return** saves policy snapshots, rules, versions, and the primary product policy to the application's BigQuery review events. Both company and regulatory selections are required before starting. Policy versions are locked for the active review. Case URLs preserve the application and selected panel through policy-library visits, refresh, and browser navigation. Step confirmation records the saved result ID rather than regenerating the agent response.
+
+To populate the prototype inbox with two explicitly fictional applications and their PDF source packets:
+
+```powershell
+python -m backend.health_underwriting_schema
+python -m backend.import_sample_applications --document-bucket YOUR_PRIVATE_DOCUMENT_BUCKET --include-health-policy
+```
+
+The importer is idempotent, never replaces existing applications, and keeps these records marked `synthetic=True` with `record_origin=sample_application`. The inbox intentionally includes this specific sample origin alongside received applications. The older bulk seed generator remains isolated to its separate demo dataset. Sample PDFs are stored privately in GCS and OCR runs when the employee reaches the document step; extracted results are not fabricated. One packet deliberately lacks its supporting medical report. The optional fictional health product policy is illustrative; it does not supply regulatory authority or an approved rate table. Upload an applicable regulatory source through Policies before starting its pipeline.
+
+`UNDERWRITING_DOCUMENT_BUCKET` must be set separately from `UNDERWRITING_POLICY_BUCKET`. The runtime needs Document AI API User access and object access to the private document bucket. Public prototype access should use fictional records; employee authentication is still required before using real applicant data.
+
+The regulatory reference importer, `python -m backend.import_regulatory_reference`, stores the unchanged 30-page IRDAI Master Circular on Health Insurance Business dated 29 May 2024 and attaches it to the two sample cases that have not started their pipelines. Its original official URL, circular number, publication date, SHA-256 digest, page references and six source-linked review topics are preserved in the policy outline. The local source PDF and provenance files are in `samples/underwriting/`. This is a dated source reference; it does not claim to include subsequent amendments or establish an application's compliance. Re-running the importer reuses the same source hash and preserves existing application selections.
+
 This application routes natural-language analysis, visualization, and catalog-gap requests to three saved Google Cloud Conversational Analytics Data Agents. The backend invokes the agents through the Gemini Data Analytics API using Application Default Credentials.
 
 ## Architecture
@@ -23,7 +50,20 @@ GET /datasets still lists BigQuery datasets for the project configured in GCP_PR
 - backend/mcp_tools.py: authenticated Google Knowledge Catalog MCP client used by the catalog explorer.
 - backend/sql_agent.py and backend/visualization_agent.py: legacy local agent implementations, no longer used by the ask and visualize routes.
 - frontend/: Vite and React UI with Tailwind CSS, Lucide icons, and Recharts.
+- backend/health_underwriting.py, backend/policy_library.py, and the Employee Underwriting / Policies views: an insurance-type-scoped application review and policy library backed by BigQuery, Document AI, private Cloud Storage, LangGraph, and Vertex AI.
 - .env: project configuration and optional ADC credential path; keep private and out of source control.
+
+## Health Underwriting
+
+The **Employee underwriting** workspace accepts an application and source files, sends each file to a configured Google Cloud Document AI processor, stores originals in a private Cloud Storage bucket, and saves the resulting case and review events in BigQuery. An employee can reopen each source document from the review step. Extracted values must be checked against the source; applicant name and date of birth entered at intake are shown alongside extraction output for comparison. A consent confirmation is required before processing.
+
+The seven gated LangGraph steps analyze application details, extract and verify documents, review regulatory sources, validate the selected company policy, assess risk, calculate or refer premium inputs, and prepare an evidence-based recommendation. The Policies view accepts UTF-8 TXT, Markdown, and JSON sources, saves originals to a private Cloud Storage bucket, and stores metadata plus Gemini's source-quoted outline in BigQuery. Company policies shown in application intake are filtered by insurance type. A JSON policy may include a deterministic premium calculation configuration; the life workflow applies its rate bands to employee-entered, document-verified inputs and displays a full breakdown. Files marked SAMPLE_NOT_APPROVED are stored as illustrative policies and any resulting premium is labeled not an approved quote; missing or specialist-review factors stop calculation. Tax remains pending when the policy does not supply verified tax treatment. Gemini explains supplied evidence but cannot establish legal compliance, infer diagnoses, calculate or alter a premium, or decide an application.
+
+**Required setup:** create a dedicated BigQuery dataset using `HEALTH_UNDERWRITING_DATASET` (defaults to `intentra_health_underwriting`), run `python -m backend.health_underwriting_schema` to create tables and safely add the new `insurance_type` column, create a Document AI OCR processor, and configure `DOCUMENT_AI_PROCESSOR`, `UNDERWRITING_DOCUMENT_BUCKET`, and `UNDERWRITING_POLICY_BUCKET`. Policy uploads accept searchable PDF, text, Markdown, and JSON files. Searchable PDFs are extracted locally by the service; scanned PDFs use the configured Document AI OCR processor. See [CLOUD_RUN.md](CLOUD_RUN.md) for API, IAM, private bucket, and Cloud Run settings. The seed generator is isolated to `intentra_health_underwriting_demo`; do not point it at the live application dataset.
+
+**Access and governance:** keep Cloud Run private and the source bucket private. Cloud Run Invoker access protects the service boundary, but application-level employee identity and underwriting-role authorization are not yet implemented. Do not use this as a production underwriting decision system until the client configures employee authentication/authorization, data retention and residency controls, current compliance materials, approved product rules, a validated risk model, and actuarially approved rates.
+
+The Document AI processor must be active and accept the uploaded file types; consult [Google Cloud's Form Parser processing guide](https://docs.cloud.google.com/document-ai/docs/samples/documentai-process-form-document). If OCR text requires additional structuring, the backend can send it to the configured Vertex AI Gemini model; the intake UI discloses this.
 
 ## Requirements
 

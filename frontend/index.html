@@ -1,10 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101b2a" />
-    <meta name="description" content="Intentra turns natural-language questions into grounded data insights and clear visualizations." />
+    <link rel="icon" type="image/svg+xml" href="/intentra-mark.svg" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <script>
+      try {
+        var theme = 'light';
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#121519' : '#f7f8fa';
+      } catch (_) {}
+    </script>
+    <meta name="description" content="Intentra brings insurance underwriting, policy review, and grounded data insights into one connected workspace." />
     <title>Intentra — Ask better. See further.</title>
   </head>
   <body>

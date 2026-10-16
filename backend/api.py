@@ -1,17 +1,23 @@
 import json
+import os
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from .conversational_agents import call_data_agent
 from .mcp_tools import PROJECT_ID, search_entries, extract_entry_info
 from .chat_history import HISTORY_DATASET, get_conversation, list_conversations, save_turn
+from . import health_underwriting
+from . import policy_library
+from . import pipeline_service
+from .document_intake import ALLOWED_MIME_TYPES, MAX_DOCUMENT_BYTES
 from google.cloud import bigquery
 
 app = FastAPI(title="Knowledge Catalog SQL Agent", version="1.0.0")
@@ -48,6 +54,32 @@ class VisualizationRequest(BaseModel):
     question: str = Field(max_length=1000)
     columns: list[str] = Field(max_length=50)
     rows: list[dict] = Field(max_length=200)
+
+class UnderwritingActionRequest(BaseModel):
+    action: str = Field(min_length=1, max_length=40)
+    reason: str = Field(default="", max_length=2000)
+
+
+class UnderwritingStepRequest(BaseModel):
+    confirm: bool = False
+    attestation: str = Field(default="", max_length=1000)
+    result_id: str = Field(default="", max_length=80)
+
+
+class PipelineRunRequest(BaseModel):
+    command: str = Field(default="run", pattern="^(run|resume|retry)$")
+    result_id: str = Field(default="", max_length=80)
+    note: str = Field(default="", max_length=2000)
+    confirmed: bool = False
+
+
+class CasePolicySelectionRequest(BaseModel):
+    policy_ids: list[str] = Field(min_length=1, max_length=40)
+    primary_policy_id: str = Field(default="", max_length=80)
+
+
+class PolicyDeleteRequest(BaseModel):
+    policy_ids: list[str] = Field(min_length=1, max_length=500)
 
 
 def _progress(on_progress, agent: str, kind: str, message: str):
@@ -174,6 +206,10 @@ def _visualization_result(raw: dict, columns: list[str], rows: list[dict]) -> di
 def _supervisor_intent(question: str) -> str:
     """Choose a safe deterministic route before invoking the specialist agents."""
     text = " ".join(question.lower().split())
+    underwriting_terms = ("underwriting", "health insurance", "insurance application", "insurance policy", "policies received", "pending policies")
+    analytics_terms = ("how many", "count", "pending", "received", "problems", "issues", "trend", "volume", "status", "applications", "policies")
+    if any(term in text for term in underwriting_terms) and any(term in text for term in analytics_terms):
+        return "underwriting_analytics"
     catalog_terms = ("catalog", "metadata", "descriptions", "data dictionary", "knowledge gap")
     if any(term in text for term in catalog_terms) and any(
         term in text for term in ("update", "improve", "missing", "gap", "review", "fix", "document", "catalog")
@@ -194,6 +230,32 @@ def _supervisor_intent(question: str) -> str:
 
 def _supervisor_result(req: QueryRequest, intent: str, on_progress=None):
     """Return help or BigQuery metadata responses without sending them to SQL generation."""
+    if intent == "underwriting_analytics":
+        metrics = health_underwriting.portfolio_metrics()
+        text = req.question.lower()
+        if "problem" in text or "issue" in text or "missing" in text:
+            rows = [{"issue": key, "application_count": value} for key, value in metrics["issues"].items()]
+            rows.sort(key=lambda row: row["application_count"], reverse=True)
+            summary = "The most common review issues across submitted applications are " + "; ".join(f"{row['issue'].lower()} ({row['application_count']})" for row in rows) + "." if rows else "No open review issues are currently flagged."
+            columns = ["issue", "application_count"]
+            x_key = "issue"
+        else:
+            rows = [{"status": key, "application_count": value} for key, value in metrics["statuses"].items()]
+            rows.sort(key=lambda row: row["application_count"], reverse=True)
+            summary = f"There are {metrics['total']} applications: {metrics['pending']} pending review and {metrics['received_today']} received today."
+            columns = ["status", "application_count"]
+            x_key = "status"
+        numeric = ["application_count"]
+        chart = {"chart_type": "bar", "x_key": x_key, "y_keys": numeric, "title": "Applications by " + x_key, "rationale": "Counts from submitted applications."}
+        return {
+            "agent": "portfolio_analytics", "status": "success", "response_type": "analysis",
+            "question": req.question, "dataset_id": health_underwriting.DATASET_ID,
+            "summary": summary, "key_findings": [summary], "data": {"summary": summary},
+            "columns": columns, "rows": rows, "row_count": len(rows), "sql": None,
+            "analysis": {"question_understanding": req.question.strip(), "approach": "Aggregated submitted application records by status or flagged issue.", "data_scope": "Applications recorded in the underwriting workspace.", "transformations": ["Grouped applications by status or issue", "Counted applications in each group"], "assumptions_and_limitations": []},
+            "visualization": {"agent": "visualization", "status": "success", "message": "Chart built from submitted application counts.", "recommendation": chart, "charts": [chart], "available_chart_types": ["bar", "pie"], "x_columns": [x_key], "numeric_columns": numeric},
+            "catalog_entries": [], "error": None,
+        }
     if intent == "help":
         summary = (
             "I can answer questions about your selected BigQuery dataset, analyze its data with SQL, "
@@ -542,6 +604,300 @@ def list_datasets():
             status_code=502,
             detail=f"Could not list BigQuery datasets for project {PROJECT_ID}: {exc}",
         ) from exc
+
+@app.get("/underwriting/intake-status")
+def underwriting_intake_status():
+    processor_configured = bool(os.getenv("DOCUMENT_AI_PROCESSOR", "").strip())
+    bucket_configured = bool(os.getenv("UNDERWRITING_DOCUMENT_BUCKET", "").strip())
+    return {
+        "ready": processor_configured and bucket_configured,
+        "document_ai_configured": processor_configured,
+        "private_document_bucket_configured": bucket_configured,
+        "product_rules_configured": False,
+        "approved_risk_model_configured": False,
+        "approved_rate_table_configured": False,
+    }
+
+
+@app.get("/underwriting/cases/{application_id}/documents/{document_id}/source")
+def underwriting_document_source(application_id: str, document_id: str):
+    """Read a source file through the authenticated Cloud Run service."""
+    case = health_underwriting.get_case(application_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    document = next((item for item in case.get("documents", []) if item.get("document_id") == document_id), None)
+    if not document:
+        raise HTTPException(status_code=404, detail="Source document not found.")
+    bucket_name = os.getenv("UNDERWRITING_DOCUMENT_BUCKET", "").strip()
+    uri = document.get("object_uri", "")
+    prefix = f"gs://{bucket_name}/applications/{application_id}/" if bucket_name else ""
+    if not prefix or not uri.startswith(prefix):
+        raise HTTPException(status_code=404, detail="Source document is unavailable.")
+    object_name = uri[len(f"gs://{bucket_name}/"):]
+    try:
+        from google.cloud import storage
+        content = storage.Client().bucket(bucket_name).blob(object_name).download_as_bytes()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not retrieve the source document: {exc}") from exc
+    filename = os.path.basename(str(document.get("name", "application-document")).replace("\\", "/"))
+    filename = "".join(char for char in filename if char not in "\r\n\"" and ord(char) >= 32)[:180] or "application-document"
+    mime_type = document.get("mime_type") if document.get("mime_type") in ALLOWED_MIME_TYPES else "application/octet-stream"
+    return Response(content=content, media_type=mime_type, headers={
+        "Content-Disposition": f'inline; filename="{filename}"',
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
+@app.post("/underwriting/applications")
+async def create_underwriting_application(
+    applicant_name: str = Form(..., min_length=2, max_length=200),
+    date_of_birth: str = Form(...),
+    product_code: str = Form(..., min_length=1, max_length=80),
+    product_name: str = Form(..., min_length=1, max_length=200),
+    insurance_type: str = Form(default="health"),
+    selected_policy_id: str = Form(default=""),
+    sum_assured_inr: str = Form(default=""),
+    term_years: str = Form(default=""),
+    tobacco_status: str = Form(default="UNKNOWN"),
+    medical_class: str = Form(default="PENDING"),
+    occupation_class: str = Form(default="SPECIALIST_REVIEW"),
+    payment_frequency: str = Form(default="ANNUAL"),
+    email: str = Form(default="", max_length=320),
+    consent_confirmed: bool = Form(default=False),
+    files: list[UploadFile] = File(...),
+):
+    if not consent_confirmed:
+        raise HTTPException(status_code=400, detail="Confirm that the applicant has authorized processing of the submitted documents.")
+    try:
+        insurance_type = policy_library.normalize_type(insurance_type)
+        if selected_policy_id:
+            selected_policy = policy_library.get_policy(selected_policy_id)
+            if not selected_policy or selected_policy.get("policy_kind") != "company" or selected_policy.get("status") not in {"active", "illustrative"}:
+                raise ValueError("Choose an active or explicitly illustrative company policy.")
+            if selected_policy.get("insurance_type") != insurance_type:
+                raise ValueError("The selected policy must match the application's insurance type.")
+            policy_product_code = (selected_policy.get("product_code") or "").strip().upper()
+            if policy_product_code and policy_product_code != product_code.strip().upper():
+                raise ValueError("The selected policy must match the application's product code.")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not validate the selected company policy: {exc}") from exc
+    if not files or len(files) > 10:
+        raise HTTPException(status_code=400, detail="Upload between one and ten application documents.")
+    prepared = []
+    for upload in files:
+        mime_type = upload.content_type or "application/octet-stream"
+        if mime_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=415, detail=f"Unsupported file type for {upload.filename}. Use PDF, JPEG, PNG, or TIFF.")
+        content = await upload.read(MAX_DOCUMENT_BYTES + 1)
+        if len(content) > MAX_DOCUMENT_BYTES:
+            raise HTTPException(status_code=413, detail=f"{upload.filename} exceeds the 20 MB per-file limit.")
+        prepared.append({"filename": upload.filename or "application document", "mime_type": mime_type, "content": content})
+    try:
+        premium_inputs = {
+            "sum_assured_inr": sum_assured_inr,
+            "term_years": term_years,
+            "tobacco_status": tobacco_status,
+            "medical_class": medical_class,
+            "occupation_class": occupation_class,
+            "payment_frequency": payment_frequency,
+        } if insurance_type == "life" else None
+        case = health_underwriting.create_application_case(applicant_name, date_of_birth, product_code, product_name, email, prepared, consent_confirmed=consent_confirmed, insurance_type=insurance_type, selected_policy_id=selected_policy_id, premium_inputs=premium_inputs)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        message = str(exc)
+        code = 503 if "Configure" in message or "Set GCP_PROJECT" in message else 502
+        raise HTTPException(status_code=code, detail=message) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not process and save the application: {exc}") from exc
+    return case
+
+
+@app.get("/underwriting/policies")
+def underwriting_policies(insurance_type: str | None = None, policy_kind: str | None = None):
+    try:
+        return {"policies": policy_library.list_policies(insurance_type, policy_kind)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not load policy library: {exc}") from exc
+
+
+@app.post("/underwriting/policies/analyze")
+async def analyze_underwriting_policy_source(
+    insurance_type: str = Form(...),
+    file: UploadFile = File(...),
+):
+    content = await file.read(policy_library.MAX_POLICY_BYTES + 1)
+    try:
+        return await run_in_threadpool(policy_library.analyze_policy_source,
+            filename=file.filename or "policy-source.txt",
+            mime_type=file.content_type or "application/octet-stream",
+            content=content,
+            insurance_type=insurance_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not analyze policy source: {exc}") from exc
+
+
+@app.post("/underwriting/policies/delete")
+def delete_underwriting_policies(req: PolicyDeleteRequest):
+    try:
+        return policy_library.delete_policies(req.policy_ids)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not delete the selected policies. Refresh the library and retry.") from exc
+
+
+@app.post("/underwriting/policies")
+async def add_underwriting_policy(
+    policy_name: str = Form(..., min_length=2, max_length=200),
+    insurance_type: str = Form(...),
+    policy_kind: str = Form(...),
+    insurer_name: str = Form(default="", max_length=200),
+    product_name: str = Form(default="", max_length=200),
+    product_code: str = Form(default="", max_length=80),
+    uin: str = Form(default="", max_length=100),
+    version: str = Form(default="", max_length=80),
+    effective_from: str = Form(default=""),
+    effective_to: str = Form(default=""),
+    extracted_rules_json: str = Form(default=""),
+    extraction_model: str = Form(default=""),
+    file: UploadFile = File(...),
+):
+    content = await file.read(policy_library.MAX_POLICY_BYTES + 1)
+    try:
+        extracted_rules = json.loads(extracted_rules_json) if extracted_rules_json else None
+        if extracted_rules is not None and not isinstance(extracted_rules, dict):
+            raise ValueError("Suggested policy analysis must be a JSON object.")
+        return await run_in_threadpool(policy_library.add_policy,
+            policy_name=policy_name, insurance_type=insurance_type, policy_kind=policy_kind,
+            filename=file.filename or "policy.txt", mime_type=file.content_type or "application/octet-stream",
+            content=content, insurer_name=insurer_name, product_name=product_name,
+            product_code=product_code, uin=uin, version=version,
+            effective_from=effective_from or None, effective_to=effective_to or None,
+            extracted_rules_override=extracted_rules,
+            extraction_model_override=extraction_model,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not store or extract policy: {exc}") from exc
+
+
+@app.get("/underwriting/policies/{policy_id}/source")
+def underwriting_policy_source(policy_id: str):
+    try:
+        result = policy_library.read_policy_source(policy_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Policy source not found.")
+        policy, content = result
+        filename = "".join(char for char in policy.get("source_filename", "policy-source.txt") if char not in '\r\n"')
+        return Response(
+            content=content,
+            media_type=policy.get("source_mime_type") or "application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{filename or "policy-source.txt"}"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not retrieve the policy source: {exc}") from exc
+
+
+@app.get("/underwriting/cases")
+def underwriting_cases():
+    try:
+        return {"storage_mode": "bigquery", "dataset_id": health_underwriting.DATASET_ID, "cases": health_underwriting.list_cases()}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not load the underwriting dataset {health_underwriting.DATASET_ID}: {exc}") from exc
+
+@app.get("/underwriting/cases/{application_id}")
+def underwriting_case(application_id: str):
+    try:
+        case = health_underwriting.get_case(application_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not read the underwriting case: {exc}") from exc
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+@app.post("/underwriting/cases/{application_id}/actions")
+def underwriting_action(application_id: str, req: UnderwritingActionRequest):
+    lock = pipeline_service.case_lock(application_id)
+    if not lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Wait for the running pipeline to reach a checkpoint before recording an action.")
+    try:
+        case = health_underwriting.update_case(application_id, req.action, req.reason)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not record the review action in BigQuery: {exc}") from exc
+    finally:
+        lock.release()
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+
+@app.post("/underwriting/cases/{application_id}/pipeline/run/stream")
+def run_application_pipeline(application_id: str, req: PipelineRunRequest):
+    def run(payload, on_progress):
+        try:
+            return pipeline_service.execute_pipeline(application_id, payload.model_dump(), on_progress)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return _sse_response(run, req)
+
+@app.post("/underwriting/cases/{application_id}/workflow/{step_id}")
+def underwriting_workflow_step(application_id: str, step_id: str, req: UnderwritingStepRequest):
+    try:
+        result = health_underwriting.run_workflow_step(application_id, step_id, req.confirm, req.attestation, req.result_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Underwriting review agent could not complete this step: {exc}") from exc
+    if result is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return result
+
+
+@app.put("/underwriting/cases/{application_id}/policies")
+def select_application_policies(application_id: str, req: CasePolicySelectionRequest):
+    try:
+        case = health_underwriting.save_case_policies(application_id, req.policy_ids, req.primary_policy_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not save application policies: {exc}") from exc
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+
+@app.post("/underwriting/cases/{application_id}/pipeline/start")
+def start_underwriting_pipeline(application_id: str):
+    try:
+        case = health_underwriting.start_pipeline(application_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not start underwriting: {exc}") from exc
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+@app.get("/underwriting/metrics")
+def underwriting_metrics():
+    try:
+        return {"dataset_id": health_underwriting.DATASET_ID, **health_underwriting.portfolio_metrics()}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Could not read BigQuery portfolio metrics: {exc}") from exc
 
 @app.get("/datasets/{dataset_id}/context")
 def dataset_context(dataset_id: str):

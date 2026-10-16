@@ -1,0 +1,206 @@
+[
+  {
+    "application_id": "SLH-APP-2026-0101",
+    "applicant": "Aarav Mehta",
+    "date_of_birth": "1992-04-12",
+    "email": "aarav.mehta@example.com",
+    "product_name": "SecureLife Health Shield",
+    "product_code": "",
+    "application_details": {
+      "sum_insured_inr": 1000000,
+      "declaration_summary": "Applicant-declared, not independently verified. height cm: 175; weight kg: 78; tobacco: No; alcohol: Occasional; diagnosis: Hypothyroidism (2022); medication: Levothyroxine 50 mcg once daily; surgeries: None; hospitalizations last 5 years: None; family history: Father: hypertension",
+      "submitted_application": {
+        "application_id": "SLH-APP-2026-0101",
+        "insurer": "SecureLife Insurance Pvt. Ltd.",
+        "product": "SecureLife Health Shield",
+        "submission_date": "2026-10-16",
+        "status": "PENDING_UNDERWRITING",
+        "applicant": {
+          "full_name": "Aarav Mehta",
+          "date_of_birth": "1992-04-12",
+          "age": 34,
+          "occupation": "Software Engineer",
+          "annual_income_inr": 1200000,
+          "email": "aarav.mehta@example.com",
+          "address": "12B, Lakeview Apartments, Indiranagar, Bengaluru, Karnataka 560038"
+        },
+        "coverage": {
+          "type": "Individual Health",
+          "sum_insured_inr": 1000000,
+          "policy_term_years": 1,
+          "requested_start_date": "2026-11-01"
+        },
+        "health_declaration": {
+          "height_cm": 175,
+          "weight_kg": 78,
+          "tobacco": "No",
+          "alcohol": "Occasional",
+          "diagnosis": "Hypothyroidism (2022)",
+          "medication": "Levothyroxine 50 mcg once daily",
+          "surgeries": "None",
+          "hospitalizations_last_5_years": "None",
+          "family_history": "Father: hypertension"
+        },
+        "prior_insurance": {
+          "insurer": "Everwell Health Insurance",
+          "policy_reference": "EWH-2025-18420",
+          "coverage_inr": 500000,
+          "claims": "None declared"
+        },
+        "consent": {
+          "medical_records_review": true,
+          "information_declaration": true,
+          "date": "2026-10-16"
+        },
+        "documents": [
+          {
+            "file": "00_application_form.pdf",
+            "document_type": "Health Insurance Proposal Form",
+            "submitted": true
+          },
+          {
+            "file": "01_kyc_verification_record.pdf",
+            "document_type": "Customer Identification Verification Record",
+            "submitted": true
+          },
+          {
+            "file": "02_address_declaration.pdf",
+            "document_type": "Residential Address Declaration",
+            "submitted": true
+          },
+          {
+            "file": "03_income_certificate.pdf",
+            "document_type": "Employment and Income Declaration",
+            "submitted": true
+          },
+          {
+            "file": "04_medical_declaration.pdf",
+            "document_type": "Health and Medical History Questionnaire",
+            "submitted": true
+          },
+          {
+            "file": "05_thyroid_lab_report.pdf",
+            "document_type": "Thyroid Function Test",
+            "submitted": true
+          },
+          {
+            "file": "06_prescription_record.pdf",
+            "document_type": "Outpatient Consultation Record",
+            "submitted": true
+          },
+          {
+            "file": "07_previous_policy_summary.pdf",
+            "document_type": "Prior Health Coverage Declaration",
+            "submitted": true
+          },
+          {
+            "file": "08_consent_and_declaration.pdf",
+            "document_type": "Proposal Declaration and Authorization",
+            "submitted": true
+          }
+        ]
+      }
+    },
+    "medical_declaration": {
+      "declared_conditions": [
+        "Hypothyroidism (2022)"
+      ],
+      "current_medications": [
+        "Levothyroxine 50 mcg once daily"
+      ],
+      "prior_hospitalisation": false,
+      "tobacco_use": "No",
+      "declaration_summary": "Applicant-declared values from the supplied application.json; not OCR extractions or independently verified medical findings."
+    },
+    "checks": [
+      {
+        "title": "Identity verification",
+        "state": "Review required",
+        "detail": "Independent identity confirmation is pending in the supplied record. Source: 01_kyc_verification_record.pdf."
+      },
+      {
+        "title": "Income verification",
+        "state": "Review required",
+        "detail": "The supplied declaration has not been independently verified. Source: 03_income_certificate.pdf."
+      },
+      {
+        "title": "Previous coverage verification",
+        "state": "Review required",
+        "detail": "Prior insurer confirmation is pending in the supplied declaration. Source: 07_previous_policy_summary.pdf."
+      },
+      {
+        "title": "Medical evidence review",
+        "state": "Review required",
+        "detail": "Compare the applicant declarations with the submitted medical records. No clinical or risk conclusion has been made."
+      },
+      {
+        "title": "Product identification",
+        "state": "Review required",
+        "detail": "No insurer product code or UIN was supplied. Confirm the matching product policy before underwriting."
+      }
+    ],
+    "documents": [
+      {
+        "name": "00_application_form.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\00_application_form.pdf",
+        "document_type": "Health Insurance Proposal Form"
+      },
+      {
+        "name": "01_kyc_verification_record.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\01_kyc_verification_record.pdf",
+        "document_type": "Customer Identification Verification Record"
+      },
+      {
+        "name": "02_address_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\02_address_declaration.pdf",
+        "document_type": "Residential Address Declaration"
+      },
+      {
+        "name": "03_income_certificate.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\03_income_certificate.pdf",
+        "document_type": "Employment and Income Declaration"
+      },
+      {
+        "name": "04_medical_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\04_medical_declaration.pdf",
+        "document_type": "Health and Medical History Questionnaire"
+      },
+      {
+        "name": "05_thyroid_lab_report.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\05_thyroid_lab_report.pdf",
+        "document_type": "Thyroid Function Test"
+      },
+      {
+        "name": "06_prescription_record.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\06_prescription_record.pdf",
+        "document_type": "Outpatient Consultation Record"
+      },
+      {
+        "name": "07_previous_policy_summary.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\07_previous_policy_summary.pdf",
+        "document_type": "Prior Health Coverage Declaration"
+      },
+      {
+        "name": "08_consent_and_declaration.pdf",
+        "file": "C:\\Users\\harit\\Downloads\\SecureLife_Health_Underwriting_Realistic_Synthetic\\08_consent_and_declaration.pdf",
+        "document_type": "Proposal Declaration and Authorization"
+      }
+    ],
+    "intake_source": {
+      "files": [
+        {
+          "name": "application.json",
+          "object_uri": "gs://intentra-application-documents-611341613317/applications/SLH-APP-2026-0101/intake/application.json",
+          "sha256": "bc59839dd5ed0d99d2c2726f2f0c00e3d6c2fce8a0f24a1caf3cf67476ea84a3"
+        },
+        {
+          "name": "README.txt",
+          "object_uri": "gs://intentra-application-documents-611341613317/applications/SLH-APP-2026-0101/intake/README.txt",
+          "sha256": "620966d84f8b2dfba557f529beff3ff1f50dcb3cd2c8b2ed24243ad8370a0d1b"
+        }
+      ],
+      "classification": "fictional_test_application",
+      "verification_status": "employee_review_required"
+    }
+  }
+]
