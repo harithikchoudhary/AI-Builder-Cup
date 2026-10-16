@@ -13,7 +13,6 @@ AGENT_PROJECT_ID = os.environ.get("CONVERSATIONAL_API_PROJECT_ID", "project-b222
 AGENTS = {
     "data_analyst": os.environ.get("SQL_DATA_AGENT_ID", "agent_a5c56f7c-56a2-4fab-a88e-ff7aa98decae").strip(),
     "visualization": os.environ.get("VISUALIZATION_DATA_AGENT_ID", "agent_39ff0a49-d5bf-497b-8787-5c0884f45a55").strip(),
-    "knowledge_gap": os.environ.get("KNOWLEDGE_GAP_DATA_AGENT_ID", "agent_047d8eb3-e02c-44f3-bf69-bb06b883796f").strip(),
 }
 
 

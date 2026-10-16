@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import HeaderSettings from './HeaderSettings'
 import ChatComposer from './ChatComposer'
@@ -7,7 +7,7 @@ import PolicyReview from './PolicyReview'
 import UnderwritingPipeline from './UnderwritingPipeline'
 import { ApplicationOverview, PipelinePreparation, PolicyLibraryTable, readWorkspaceRoute, writeWorkspaceRoute } from './CasePreparation'
 import {
-  Activity, ArrowDownToLine, ArrowRight, BarChart3, BookOpen, Check,
+  Activity, ArrowDownToLine, ArrowRight, BarChart3, Check,
   ChevronDown, CircleAlert, Cloud, Code2, Compass, Copy, Database,
   ExternalLink, Layers3, LoaderCircle, Menu, MessageSquareText, Plus,
   Search, Send, ShieldCheck, Sparkles, Table2, Trophy, X,
@@ -93,23 +93,21 @@ function Brand() {
   return <div className="brand"><div className="brand-icon"><Sparkles size={21} strokeWidth={2.2} /></div><div><strong>Intentra</strong><span>ASK BETTER. SEE FURTHER.</span></div></div>
 }
 
-function Sidebar({ view, setView, history, selectHistory, newQuestion, open, close }) {
+function Sidebar({ view, setView, history, selectHistory, newQuestion, open, close, collapsed }) {
   const showDataTools = !['underwriting', 'policies'].includes(view)
   return <>
     {open && <button className="nav-scrim" aria-label="Close menu" onClick={close} />}
-    <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
-      <div className="side-top"><Brand /><button className="icon-button side-close" aria-label="Close menu" onClick={close}><X size={19} /></button></div>
-      <div className="side-nav">
+    <aside id="workspace-sidebar" className={`sidebar ${open ? 'sidebar-open' : ''} ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className="side-top"><Brand /></div>
+      <nav className="side-nav" aria-label="Workspace navigation">
         <span className="nav-caption">WORKSPACE</span>
         {showDataTools && <button className="new-chat-button" onClick={() => { newQuestion(); close() }}><Plus size={17} /> New chat <span>⌘ K</span></button>}
         <button className={`nav-item ${view === 'underwriting' ? 'selected' : ''}`} onClick={() => { setView('underwriting'); close() }}><ClipboardCheck size={19} /> Applications <ArrowRight className="nav-end" size={16} /></button>
         <button className={`nav-item ${view === 'policies' ? 'selected' : ''}`} onClick={() => { setView('policies'); close() }}><ScrollText size={19} /> Policies <ArrowRight className="nav-end" size={16} /></button>
         <button className={`nav-item ${view === 'ask' ? 'selected' : ''}`} onClick={() => { setView('ask'); close() }}><MessageSquareText size={19} /> Ask your data <ArrowRight className="nav-end" size={16} /></button>
-        <button className={`nav-item ${view === 'catalog' ? 'selected' : ''}`} onClick={() => { setView('catalog'); close() }}><Database size={19} /> Catalog explorer <ArrowRight className="nav-end" size={16} /></button>
-        <button className={`nav-item ${view === 'knowledge-agent' ? 'selected' : ''}`} onClick={() => { setView('knowledge-agent'); close() }}><Sparkles size={19} /> Catalog agent <ArrowRight className="nav-end" size={16} /></button>
         {showDataTools && <><span className="nav-caption recent-label">CHAT HISTORY</span>
-        {history.length === 0 ? <div className="empty-history">Your chats will appear here.</div> : history.map((entry, index) => <button key={entry.id} className="history-item" onClick={() => { selectHistory(index); close() }} title={entry.question}>{entry.mode === 'knowledge-agent' ? <Sparkles size={16} /> : <Activity size={16} />}<span>{entry.question}</span></button>)}</>}
-      </div>
+        {history.length === 0 ? <div className="empty-history">Your chats will appear here.</div> : history.map((entry, index) => <button key={entry.id} className="history-item" onClick={() => { selectHistory(index); close() }} title={entry.question}><Activity size={16} /><span>{entry.question}</span></button>)}</>}
+      </nav>
       <div className="side-footer"><div className="cloud-mark"><Cloud size={20} /><span>Powered by<br /><strong>Google Cloud</strong></span></div><div className="event-rule"><i /><i /><i /><i /></div></div>
     </aside>
   </>
@@ -121,7 +119,7 @@ function Status({ state }) {
 
 function ProgressTimeline({ events = [] }) {
   const activeIndex = events.findLastIndex((event) => event.kind !== 'agent_complete')
-  return <ol className="progress-timeline">{events.map((event, index) => <li key={`${event.agent}-${event.message}-${index}`} className={index === activeIndex ? 'active' : ''}><span className="progress-mark">{event.kind === 'agent_complete' || index < activeIndex ? <Check size={12} /> : <LoaderCircle className="spin" size={12} />}</span><span><small>{event.agent === 'supervisor' ? 'SUPERVISOR' : event.agent === 'data_analyst' ? 'SQL AGENT' : event.agent === 'visualization' ? 'VISUALIZATION AGENT' : event.agent === 'knowledge_gap' ? 'KNOWLEDGE CATALOG AGENT' : 'INTENTRA'}</small>{event.message}</span></li>)}</ol>
+  return <ol className="progress-timeline">{events.map((event, index) => <li key={`${event.agent}-${event.message}-${index}`} className={index === activeIndex ? 'active' : ''}><span className="progress-mark">{event.kind === 'agent_complete' || index < activeIndex ? <Check size={12} /> : <LoaderCircle className="spin" size={12} />}</span><span><small>{event.agent === 'supervisor' ? 'SUPERVISOR' : event.agent === 'data_analyst' ? 'SQL AGENT' : event.agent === 'visualization' ? 'VISUALIZATION AGENT' : 'INTENTRA'}</small>{event.message}</span></li>)}</ol>
 }
 
 function Table({ rows, columns }) {
@@ -203,7 +201,7 @@ function VisualizationAgent({ question, rows, columns, initialAnalysis }) {
   if (!charts.length) return <div className="no-results">No charts could be created from these results.</div>
   return <div className="visualization-agent">
     <div className="visualization-recommendation"><span><Sparkles size={15} /> VISUALIZATION AGENT · {charts.length} CHARTS</span><p>Explore the same query results through different chart views.</p></div>
-    <div className="charts-grid">{charts.map((chart, index) => <ChartCard key={`${chart.chart_type}-${index}`} chart={chart} rows={rows} numericColumns={analysis.numeric_columns || []} xColumns={analysis.x_columns || []} />)}</div>
+    <div className="charts-grid row row-cols-1 row-cols-xl-2 g-3 gap-0">{charts.map((chart, index) => <ChartCard key={`${chart.chart_type}-${index}`} chart={chart} rows={rows} numericColumns={analysis.numeric_columns || []} xColumns={analysis.x_columns || []} />)}</div>
   </div>
 }
 
@@ -245,28 +243,10 @@ function AnalysisValue({ value }) {
   return <p><InlineMarkdown text={String(value)} /></p>
 }
 
-function SqlAnalysis({ analysis }) {
-  if (!analysis || typeof analysis !== 'object') return null
-  const sections = [
-    ['Question understood', analysis.question_understanding],
-    ['Analysis approach', analysis.approach],
-    ['Data scope', analysis.data_scope],
-    ['Query steps', analysis.transformations],
-    ['Assumptions and limitations', analysis.assumptions_and_limitations],
-  ].filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0))
-  if (!sections.length) return null
-  return <section className="sql-analysis" aria-label="Detailed analysis">
-    <div className="sql-analysis-heading"><span><Compass size={16} /> DETAILED ANALYSIS</span></div>
-    <div className="sql-analysis-grid">{sections.map(([title, value], index) => <article key={title} className={`sql-analysis-card ${index === 0 || index === 1 ? 'wide' : ''}`}><h4>{title}</h4><AnalysisValue value={value} /></article>)}</div>
-  </section>
-}
-
 function Answer({ entry }) {
   const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState('Result')
   useEffect(() => {
     setCopied(false)
-    setActiveTab('Result')
   }, [entry])
   if (!entry) return null
   const { result } = entry
@@ -274,8 +254,8 @@ function Answer({ entry }) {
   const columns = result.columns || (rows[0] ? Object.keys(rows[0]) : [])
   const canChart = rows.length > 0 && columns.length > 0
   const responseType = result.response_type || 'analysis'
-  const tabs = responseType === 'analysis' ? ['Result', 'Details Analysis', 'View SQL with Table']
-    : responseType === 'help' ? ['Result'] : ['Result', 'Details Analysis']
+  const isDatasetOverview = responseType === 'dataset_overview'
+  const disclosureTitle = result.sql ? 'View SQL with Table' : isDatasetOverview ? 'View available data' : 'View results table'
   const fullSummary = result.summary || (rows.length ? `Query completed with ${result.row_count ?? rows.length} results. Explore the data below.` : 'The query ran successfully but returned no rows.')
   const reportHeading = fullSummary.search(/^\s*#{1,4}\s*(?:Data\s+)?Analysis\s+Report\s*$/im)
   const summary = reportHeading > 0 ? fullSummary.slice(0, reportHeading).trim() : fullSummary
@@ -296,9 +276,8 @@ function Answer({ entry }) {
 
   return <section className="answer" aria-live="polite">
     {result.error ? <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> COULD NOT COMPLETE</div><div className="error-panel"><CircleAlert size={20} /><span>{result.error}</span></div></div></div> : <>
-      {responseType === 'analysis' ? <div className="answer-brand"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-label">INTENTRA <span>·</span> DATA INSIGHT</div></div> : <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> {responseType === 'catalog' ? 'KNOWLEDGE CATALOG' : responseType === 'dataset_overview' ? 'DATA CATALOG' : 'ASSISTANT'}</div><div className="summary-block"><MarkdownContent text={summary} /></div>{result.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{result.history_warning}</span></div>}</div></div>}
-      {tabs.length > 1 && <nav className="answer-tabs" aria-label="Answer sections" role="tablist">{tabs.map((tab) => <button key={tab} type="button" role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? 'active' : ''} onClick={() => setActiveTab(tab)}>{tab === 'Charts' && <BarChart3 size={15} />}{tab === 'Details Analysis' && <Compass size={15} />}{tab === 'View SQL with Table' && <Code2 size={15} />}{tab}</button>)}</nav>}
-      {activeTab === 'Result' && responseType !== 'help' && <section className="answer-panel" role="tabpanel">
+      {responseType === 'analysis' ? <div className="answer-brand"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-label">INTENTRA <span>·</span> DATA INSIGHT</div></div> : <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> {responseType === 'dataset_overview' ? 'DATA CATALOG' : 'ASSISTANT'}</div><div className="summary-block"><MarkdownContent text={summary} /></div>{result.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{result.history_warning}</span></div>}</div></div>}
+      {responseType !== 'help' && <section className="answer-panel">
         <div className="result-overview-heading"><span className="block-label"><Table2 size={16} /> RESULT</span></div>
         <section className="result-summary-card"><h3>Summary</h3><MarkdownContent text={summary} /></section>
         {keyFindingItems.length > 0 && <section className="key-findings-card"><h3>Key Findings</h3><AnalysisValue value={keyFindingItems} /></section>}
@@ -306,43 +285,9 @@ function Answer({ entry }) {
         {reportHeading > 0 && <details className="full-agent-response"><summary>View full agent response</summary><MarkdownContent text={fullSummary} /></details>}
         {result.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{result.history_warning}</span></div>}
         {responseType === 'analysis' && <section className="result-charts" aria-label="Charts for this result"><div className="result-section-heading"><span><BarChart3 size={16} /> CHARTS</span><small>Visual views of the same query results</small></div>{canChart ? <VisualizationAgent question={entry.question} rows={rows} columns={columns} initialAnalysis={result.visualization} /> : <div className="no-results">No chartable rows were returned for this question.</div>}</section>}
-        {rows.length > 0 && <section className="result-data-section"><div className="result-heading"><div><span className="block-label"><Table2 size={16} /> {responseType === 'dataset_overview' ? 'AVAILABLE DATA' : 'SUPPORTING DATA'}</span><h3>{result.row_count ?? rows.length} {responseType === 'dataset_overview' ? 'tables / items' : rows.length === 1 ? 'row' : 'rows'} returned</h3></div><button className="subtle-action" onClick={() => downloadCsv(rows, columns)}><ArrowDownToLine size={17} /> Export CSV</button></div><div className="result-frame"><Table rows={rows} columns={columns} /></div></section>}
-        {responseType === 'catalog' && <div className="catalog-agent-fields">{Object.entries(result.data || {}).filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0)).map(([key, value]) => <article key={key}><h4>{key.replaceAll('_', ' ')}</h4><AnalysisValue value={value} /></article>)}</div>}
+        {(result.sql || rows.length > 0) && <details className="sql-details sql-table-panel"><summary><span>{result.sql ? <Code2 size={18} /> : <Table2 size={18} />} {disclosureTitle}</span><ChevronDown size={18} /></summary>{result.sql && <><div className="code-toolbar"><span>BIGQUERY SQL</span><button aria-label={copied ? 'Copied SQL' : 'Copy SQL'} title={copied ? 'Copied' : 'Copy SQL'} onClick={copySql}>{copied ? <Check size={16} /> : <Copy size={16} />}</button></div><pre><code>{result.sql}</code></pre></>}<section className="result-data-section"><div className="result-heading"><div><span className="block-label"><Table2 size={16} /> {isDatasetOverview ? 'AVAILABLE DATA' : 'QUERY RESULTS'}</span><h3>{result.row_count ?? rows.length} {isDatasetOverview ? 'tables / items' : rows.length === 1 ? 'row' : 'rows'} returned</h3></div>{rows.length > 0 && <button className="subtle-action" onClick={() => downloadCsv(rows, columns)}><ArrowDownToLine size={17} /> Export CSV</button>}</div><div className="result-frame">{rows.length ? <Table rows={rows} columns={columns} /> : <div className="no-results">No matching rows found for this query.</div>}</div></section></details>}
       </section>}
-      {activeTab === 'Details Analysis' && <section className="answer-panel" role="tabpanel"><SqlAnalysis analysis={result.analysis} />{responseType === 'dataset_overview' && <div className="sql-analysis"><div className="sql-analysis-heading"><span><Compass size={16} /> DATASET OVERVIEW</span></div><div className="sql-analysis-grid"><article className="sql-analysis-card wide"><h4>Metadata source</h4><p>Read directly from BigQuery dataset and table metadata. No analytical query was executed.</p></article></div></div>}{result.catalog_entries?.length > 0 && <details className="assets-details"><summary><span><Database size={18} /> Catalog assets consulted</span><ChevronDown size={18} /></summary><div className="asset-list">{result.catalog_entries.map((asset) => <div key={asset.name}><Database size={15} /><span>{asset.displayName || asset.fqn}<small>{asset.fqn}</small></span><em>{asset.system}</em></div>)}</div></details>}</section>}
-      {activeTab === 'View SQL with Table' && <section className="answer-panel sql-table-panel" role="tabpanel"><details className="sql-details" open><summary><span><Code2 size={18} /> Generated SQL</span><ChevronDown size={18} /></summary><div className="code-toolbar"><span>BIGQUERY SQL</span><button aria-label={copied ? 'Copied SQL' : 'Copy SQL'} title={copied ? 'Copied' : 'Copy SQL'} onClick={copySql}>{copied ? <Check size={16} /> : <Copy size={16} />}</button></div><pre><code>{result.sql}</code></pre></details><div className="result-heading"><div><span className="block-label"><Table2 size={16} /> QUERY RESULTS</span><h3>{result.row_count ?? rows.length} {rows.length === 1 ? 'row' : 'rows'} returned</h3></div></div><div className="result-frame">{rows.length ? <Table rows={rows} columns={columns} /> : <div className="no-results">No matching rows found for this query.</div>}</div></section>}
     </>}
-  </section>
-}
-
-function CatalogAgentResult({ entry }) {
-  if (entry.pending) return <div className="assistant-response loading-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> KNOWLEDGE CATALOG AGENT</div><div className="loading-state"><div><strong>Reviewing catalog metadata</strong><span>Live agent and tool activity:</span></div><ProgressTimeline events={entry.progress || []} /></div></div></div>
-  if (entry.error) return <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> KNOWLEDGE CATALOG AGENT</div><div className="error-panel"><CircleAlert size={20} /><span>{entry.error}</span></div></div></div>
-  const response = entry.response || {}
-  const data = response.data && typeof response.data === 'object' ? response.data : {}
-  const fields = Object.entries(data).filter(([, value]) => value != null && value !== '' && (!Array.isArray(value) || value.length > 0))
-  const status = response.status || 'success'
-  return <div className="assistant-response"><div className="assistant-avatar"><Sparkles size={17} /></div><div className="assistant-content"><div className="assistant-label">INTENTRA <span>·</span> KNOWLEDGE CATALOG AGENT <i className={`catalog-agent-status ${status}`}>{status.replaceAll('_', ' ')}</i></div><div className="catalog-agent-result"><p className="catalog-agent-message">{response.message || 'The Knowledge Catalog Agent completed its review.'}</p>{response.history_warning && <div className="error-panel"><CircleAlert size={17} /><span>{response.history_warning}</span></div>}{fields.length > 0 && <div className="catalog-agent-fields">{fields.map(([key, value]) => <article key={key}><h4>{key.replaceAll('_', ' ')}</h4><AnalysisValue value={value} /></article>)}</div>}</div></div></div>
-}
-
-function CatalogAgentWorkspace({ datasetId, entry, onSubmit }) {
-  const [input, setInput] = useState('')
-  const busy = Boolean(entry?.pending)
-  function submit(value = input) {
-    const trimmed = value.trim()
-    if (!trimmed || busy || !datasetId) return
-    onSubmit(trimmed)
-    setInput('')
-  }
-  return <section className="catalog-agent-workspace">
-    <div className="catalog-agent-welcome"><span className="welcome-badge"><Sparkles size={14} /> KNOWLEDGE CATALOG AGENT</span><h2>Make your catalog<br /><em>more useful.</em></h2><p>Review metadata gaps, improve asset descriptions, and get grounded recommendations for your selected dataset.</p></div>
-    {entry && <div className="conversation-thread"><div className="user-message"><span>{entry.question}</span><div className="user-avatar">YOU</div></div><CatalogAgentResult entry={entry} /></div>}
-    {!entry && <div className="catalog-agent-suggestions"><span>TRY A CATALOG REVIEW</span><div>{[
-      'Review this dataset for missing table and column descriptions.',
-      'Find unclear or inconsistent business definitions in this dataset.',
-      'Suggest metadata improvements that would help an analyst query this data.',
-    ].map((suggestion) => <button key={suggestion} type="button" onClick={() => submit(suggestion)} disabled={!datasetId}><Sparkles size={14} />{suggestion}<ArrowRight size={15} /></button>)}</div></div>}
-    <ChatComposer className="catalog-agent-composer" id="catalog-agent-question" label="Ask the Knowledge Catalog Agent" value={input} onChange={setInput} onSubmit={submit} placeholder={datasetId ? 'Ask the catalog agent to review or improve metadata…' : 'Choose a dataset in Settings → Manage connections…'} busy={busy} disabled={!datasetId} busyLabel="Reviewing" />
   </section>
 }
 
@@ -730,16 +675,12 @@ function App() {
   const [conversationId, setConversationId] = useState(makeId)
   const [selected, setSelected] = useState(null)
   const [activeQuestion, setActiveQuestion] = useState('')
-  const [catalogAgentEntry, setCatalogAgentEntry] = useState(null)
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [searchError, setSearchError] = useState('')
-  const [assets, setAssets] = useState(null)
   const [connection, setConnection] = useState('checking')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [datasets, setDatasets] = useState([])
   const [projectId, setProjectId] = useState('')
   const [datasetId, setDatasetId] = useState('')
@@ -747,7 +688,15 @@ function App() {
   const [datasetError, setDatasetError] = useState('')
   const [datasetContext, setDatasetContext] = useState(null)
   const [datasetContextLoading, setDatasetContextLoading] = useState(false)
+  const chatScrollRef = useRef(null)
 
+  function toggleSidebar() {
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      setSidebarCollapsed(false)
+      setMenuOpen((value) => !value)
+    }
+    else setSidebarCollapsed((value) => !value)
+  }
   useEffect(() => {
     fetch('/health').then((response) => setConnection(response.ok ? 'online' : 'offline')).catch(() => setConnection('offline'))
     fetch('/datasets').then(async (response) => {
@@ -797,6 +746,13 @@ function App() {
     return () => { cancelled = true }
   }, [sessionId])
 
+  useEffect(() => {
+    if (view !== 'ask') return
+    const node = chatScrollRef.current
+    if (!node) return
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
+  }, [view, selected, activeQuestion, loading, progress.length])
+
   async function ask(value) {
     const text = value.trim()
     if (!text || loading) return
@@ -825,59 +781,11 @@ function App() {
     } finally { setActiveQuestion(''); setLoading(false) }
   }
 
-  async function askCatalogAgent(value) {
-    const text = value.trim()
-    if (!text || catalogAgentEntry?.pending || !datasetId) return
-    setView('knowledge-agent')
-    setSelected(null)
-    const activeConversationId = conversationId || makeId()
-    const existing = history.find((entry) => entry.conversation_id === activeConversationId)
-    const turnId = makeId()
-    const turnIndex = existing?.turns?.length || 0
-    setConversationId(activeConversationId)
-    const pending = { id: turnId, mode: 'knowledge-agent', question: text, pending: true, progress: [{ agent: 'knowledge_gap', kind: 'agent_start', message: 'Starting the Knowledge Catalog review.' }] }
-    let latestProgress = pending.progress
-    setCatalogAgentEntry(pending)
-    try {
-      const response = await postStream('/catalog-agent/stream', { question: text, dataset_id: datasetId, session_id: sessionId, conversation_id: activeConversationId, turn_id: turnId, turn_index: turnIndex }, (event) => {
-        latestProgress = [...latestProgress, event].slice(-8)
-        setCatalogAgentEntry((current) => current?.id === pending.id ? { ...current, progress: latestProgress } : current)
-      })
-      const completed = { ...pending, pending: false, progress: latestProgress, response }
-      setCatalogAgentEntry(completed)
-      const saved = { ...response, response_type: 'catalog', summary: response.message || 'The Knowledge Catalog agent completed its review.', columns: [], rows: [], row_count: 0, analysis: { question_understanding: text, approach: 'Routed to the Knowledge Catalog agent for metadata review.' }, sql: null, visualization: null }
-      const turn = { id: turnId, question: text, result: saved }
-      const conversation = { ...(existing || {}), id: activeConversationId, conversation_id: activeConversationId, dataset_id: datasetId, question: text, turns: [...(existing?.turns || []), turn] }
-      setHistory((previous) => [conversation, ...previous.filter((entry) => entry.conversation_id !== activeConversationId)])
-      setSelected(conversation)
-    } catch (error) {
-      const failed = { ...pending, pending: false, progress: latestProgress, error: error.message }
-      setCatalogAgentEntry(failed)
-    }
-  }
-
-  async function search(event) {
-    event.preventDefault()
-    if (!searchTerm.trim() || searching) return
-    setSearching(true)
-    setSearchError('')
-    setAssets(null)
-    try {
-      const response = await post('/search', {
-        query: searchTerm.trim(),
-        page_size: 1000,
-        dataset_id: datasetId,
-      })
-      setAssets(response.entries || [])
-    } catch (error) { setSearchError(error.message) } finally { setSearching(false) }
-  }
-
   return <div className="app-shell">
-    <Sidebar view={view} setView={setView} history={history} selectHistory={(index) => { const entry = history[index]; if (entry.mode === 'knowledge-agent') { setCatalogAgentEntry(entry); setView('knowledge-agent') } else { setSelected(entry); setConversationId(entry.conversation_id); setActiveQuestion(''); setView('ask') } }} newQuestion={() => { setSelected(null); setConversationId(makeId()); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion(''); setView('ask') }} open={menuOpen} close={() => setMenuOpen(false)} />
+    <Sidebar view={view} setView={setView} history={history} selectHistory={(index) => { const entry = history[index]; setSelected(entry); setConversationId(entry.conversation_id); setActiveQuestion(''); setView('ask') }} newQuestion={() => { setSelected(null); setConversationId(makeId()); setActiveQuestion(''); setQuestion(''); setView('ask') }} open={menuOpen} close={() => setMenuOpen(false)} collapsed={sidebarCollapsed} />
     <main className="main-panel">
-      <header className="topbar"><div className="top-left"><button className="icon-button mobile-menu" aria-label="Open menu" onClick={() => setMenuOpen(true)}><Menu size={22} /></button><span className="breadcrumb"><span className="breadcrumb-product">INTENTRA</span><span>/</span> {view === 'ask' ? 'Data copilot' : view === 'knowledge-agent' ? 'Catalog assistant' : view === 'underwriting' ? 'Underwriting' : view === 'policies' ? 'Policies & rules' : 'Catalog explorer'}</span></div><div className="top-right"><Status state={connection} /><ThemeToggle /><HeaderSettings datasets={datasets} datasetId={datasetId} projectId={projectId} loading={datasetLoading} error={datasetError} onChange={(id) => { setDatasetId(id); setSelected(null); setConversationId(makeId()); setCatalogAgentEntry(null); setActiveQuestion(''); setQuestion('') }} /></div></header>
-      <div className={`content ${view !== 'catalog' ? 'chat-content' : ''}`}>
-        {view === 'catalog' && <div className="event-banner"><div className="banner-image" /><div className="banner-overlay" /><div className="banner-content"><span className="event-tag"><Trophy size={14} /> INTENTRA KNOWLEDGE STUDIO</span><h1>Know your data.<br /><em>Know your next move.</em></h1><div className="banner-bottom"><span>Intentra</span><span className="banner-separator" /><span>Built on Google Cloud</span></div></div><span className="banner-deco">01 / DISCOVER</span></div>}
+      <header className="topbar"><div className="top-left"><button className="icon-button" type="button" aria-label={menuOpen ? 'Close navigation' : sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={menuOpen ? 'Close navigation' : sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-controls="workspace-sidebar" onClick={toggleSidebar}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button><span className="breadcrumb"><span className="breadcrumb-product">INTENTRA</span><span>/</span> {view === 'ask' ? 'Data copilot' : view === 'underwriting' ? 'Underwriting' : view === 'policies' ? 'Policies & rules' : 'Data copilot'}</span></div><div className="top-right"><Status state={connection} /><ThemeToggle /><HeaderSettings datasets={datasets} datasetId={datasetId} projectId={projectId} loading={datasetLoading} error={datasetError} onChange={(id) => { setDatasetId(id); setSelected(null); setConversationId(makeId()); setActiveQuestion(''); setQuestion('') }} /></div></header>
+      <div className="content chat-content">
         {view === 'policies' ? (applicationId && !caseContext ? <div className="case-panel">{caseContextError || 'Loading application policies…'}{caseContextError && <button className="subtle-action" onClick={() => openApplication('')}>Return to applications</button>}</div> : <PoliciesWorkspace application={caseContext} onReturnToApplication={() => openApplication(applicationId, 'pipeline')} onPoliciesApplied={(updated) => { setCaseContext(updated); openApplication(updated.application_id, 'pipeline') }} />) : view === 'underwriting' ? <UnderwritingWorkspace applicationId={applicationId} panel={casePanel} onOpenCase={openApplication} onCloseCase={() => { setApplicationId(''); setCaseContext(null); setCasePanel('overview'); writeWorkspaceRoute('underwriting'); setViewState('underwriting') }} onPanelChange={(nextPanel) => { setCasePanel(nextPanel); writeWorkspaceRoute('underwriting', applicationId, nextPanel) }} onAskAnalytics={(text) => { setSelected(null); setConversationId(makeId()); setQuestion(text); setView('ask') }} onOpenPolicies={(application) => { setCaseContext(application); setApplicationId(application.application_id); setViewState('policies'); writeWorkspaceRoute('policies', application.application_id, 'pipeline') }} /> : view === 'ask' ? <>
           <section className={`chat-workspace ${!selected && !activeQuestion ? 'chat-workspace-empty' : ''}`}>
             {!selected && !activeQuestion && <div className="chat-welcome"><span className="welcome-badge"><Sparkles size={14} /> INTENTRA DATA COPILOT</span><h2>Ask better.<br /><em>See further.</em></h2><p>{datasetId ? 'Your data has a story. Ask a question and Intentra will help you uncover it.' : 'Choose a dataset in Settings → Manage connections, then ask Intentra a question about your data.'}</p>{datasetId && datasetContext && <div className="welcome-dataset-context"><Database size={15} /><strong>{datasetContext.dataset_id}</strong><span>{datasetContext.table_count} {datasetContext.table_count === 1 ? 'table' : 'tables'}</span><small>{datasetContext.project_id}</small></div>}</div>}
@@ -889,7 +797,7 @@ function App() {
             {!selected && !loading && !activeQuestion && datasetContextLoading && <div className="schema-loading"><LoaderCircle className="spin" size={15} /> Reading this dataset’s table structure…</div>}
             <ChatComposer id="question" label="Ask Intentra about your data" value={question} onChange={setQuestion} onSubmit={ask} placeholder="Message Intentra about your data…" busy={loading} disabled={!datasetId} />
           </section>
-        </> : view === 'knowledge-agent' ? <CatalogAgentWorkspace datasetId={datasetId} entry={catalogAgentEntry} onSubmit={askCatalogAgent} /> : <section className="catalog-section"><div className="section-head"><div><span className="eyebrow"><span className="eyebrow-mark" /> KNOWLEDGE CATALOG</span><h2>Discover your data assets<span className="period">.</span></h2><p>Search tables and datasets indexed by Google Cloud.</p></div></div><form className="catalog-search" onSubmit={search}><Search size={21} /><label className="sr-only" htmlFor="catalog-query">Search catalog</label><input id="catalog-query" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search for claims, customers, transactions..." /><button type="submit" disabled={searching || !searchTerm.trim()}>{searching ? <LoaderCircle className="spin" size={18} /> : 'Search assets'}</button></form>{searchError && <div className="error-panel"><CircleAlert size={18} />{searchError}</div>}{assets && <div className="catalog-results"><div className="catalog-result-head"><span>{assets.length} {assets.length === 1 ? 'ASSET' : 'ASSETS'} FOUND</span><span>KNOWLEDGE CATALOG</span></div>{assets.length ? assets.map((asset) => <div className="catalog-row" key={asset.name}><div className="catalog-icon"><Database size={20} /></div><div className="catalog-meta"><strong>{asset.displayName || asset.fqn}</strong><small>{asset.fqn}</small><span>{asset.system || 'Data asset'} <i /> {asset.location || 'Unknown region'}</span></div><button className="icon-button" aria-label={`Ask about ${asset.displayName || asset.fqn}`} title="Ask about this asset" onClick={() => { setView('ask'); setQuestion(`Tell me about ${asset.displayName || asset.fqn}`) }}><ArrowRight size={19} /></button></div>) : <div className="no-results">No assets matched. Try a different term.</div>}</div>}{!assets && !searchError && <div className="catalog-placeholder"><BookOpen size={32} /><strong>Your catalog, one search away.</strong><span>Find relevant assets before you start building.</span></div>}</section>}
+        </> : null}
         <footer className="page-footer"><span><span className="footer-bars"><i /><i /><i /><i /></span> INTENTRA · ASK BETTER. SEE FURTHER.</span><span>BUILT ON GOOGLE CLOUD <ExternalLink size={13} /></span></footer>
       </div>
     </main>

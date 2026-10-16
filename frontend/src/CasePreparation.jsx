@@ -6,7 +6,7 @@ import { ArrowRight, Check, ChevronDown, FileText, Layers3, Play, ScrollText, Sh
 
 export function readWorkspaceRoute() {
   const parts = window.location.hash.slice(1).split('/').filter(Boolean)
-  const view = ['underwriting', 'policies', 'ask', 'catalog', 'knowledge-agent'].includes(parts[0]) ? parts[0] : 'underwriting'
+  const view = ['underwriting', 'policies', 'ask'].includes(parts[0]) ? parts[0] : 'underwriting'
   return { view, applicationId: ['underwriting', 'policies'].includes(view) ? decodeURIComponent(parts[1] || '') : '', panel: parts[2] === 'pipeline' ? 'pipeline' : 'overview' }
 }
 

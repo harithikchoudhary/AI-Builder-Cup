@@ -12,7 +12,7 @@ from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
 from .conversational_agents import call_data_agent
-from .mcp_tools import PROJECT_ID, search_entries, extract_entry_info
+from .mcp_tools import PROJECT_ID
 from .chat_history import HISTORY_DATASET, get_conversation, list_conversations, save_turn
 from . import health_underwriting
 from . import policy_library
@@ -31,19 +31,6 @@ app.add_middleware(
 
 class QueryRequest(BaseModel):
     question: str
-    dataset_id: str | None = None
-    session_id: str | None = Field(default=None, max_length=80)
-    conversation_id: str | None = Field(default=None, max_length=80)
-    turn_id: str | None = Field(default=None, max_length=80)
-    turn_index: int = Field(default=0, ge=0)
-
-class SearchRequest(BaseModel):
-    query: str
-    page_size: int = 10
-    dataset_id: str | None = None
-
-class KnowledgeCatalogRequest(BaseModel):
-    question: str = Field(min_length=1, max_length=4000)
     dataset_id: str | None = None
     session_id: str | None = Field(default=None, max_length=80)
     conversation_id: str | None = Field(default=None, max_length=80)
@@ -210,11 +197,6 @@ def _supervisor_intent(question: str) -> str:
     analytics_terms = ("how many", "count", "pending", "received", "problems", "issues", "trend", "volume", "status", "applications", "policies")
     if any(term in text for term in underwriting_terms) and any(term in text for term in analytics_terms):
         return "underwriting_analytics"
-    catalog_terms = ("catalog", "metadata", "descriptions", "data dictionary", "knowledge gap")
-    if any(term in text for term in catalog_terms) and any(
-        term in text for term in ("update", "improve", "missing", "gap", "review", "fix", "document", "catalog")
-    ):
-        return "catalog"
     overview_phrases = (
         "what data can you provide", "what data do you have", "what data is available",
         "what tables", "list tables", "show tables", "list datasets", "what datasets",
@@ -259,8 +241,8 @@ def _supervisor_result(req: QueryRequest, intent: str, on_progress=None):
     if intent == "help":
         summary = (
             "I can answer questions about your selected BigQuery dataset, analyze its data with SQL, "
-            "create charts from query results, and review catalog metadata. Try asking what tables are "
-            "available, requesting a data analysis, or asking me to review missing catalog descriptions."
+            "and create charts from query results. Try asking what tables are available or requesting "
+            "a data analysis."
         )
         rows, columns = [], []
         analysis = {"question_understanding": req.question.strip(), "approach": "Intentra handled this as a general capability question."}
@@ -299,7 +281,7 @@ def _supervisor_result(req: QueryRequest, intent: str, on_progress=None):
 
 
 def _run_ask(req: QueryRequest, on_progress=None):
-    """Route analysis through the saved SQL agent and resolve catalog gaps when reported."""
+    """Route analysis through the saved SQL agent and resolve knowledge gaps when reported."""
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     intent = _supervisor_intent(req.question)
@@ -309,19 +291,6 @@ def _run_ask(req: QueryRequest, on_progress=None):
             return _supervisor_result(req, intent, on_progress)
         except Exception as exc:
             raise HTTPException(status_code=502, detail=f"Intentra could not inspect BigQuery metadata: {exc}") from exc
-    if intent == "catalog":
-        _progress(on_progress, "supervisor", "agent_complete", "Routing this catalog request to the Knowledge Catalog agent.")
-        catalog = _run_catalog_agent(KnowledgeCatalogRequest(
-            question=req.question, dataset_id=req.dataset_id, session_id=req.session_id,
-            conversation_id=req.conversation_id, turn_id=req.turn_id, turn_index=req.turn_index,
-        ), on_progress)
-        summary = catalog.get("message") or "The Knowledge Catalog agent completed its review."
-        return {
-            **catalog, "response_type": "catalog", "summary": summary,
-            "columns": [], "rows": [], "row_count": 0, "sql": None,
-            "analysis": {"question_understanding": req.question.strip(), "approach": "Routed to the Knowledge Catalog agent for metadata review."},
-            "visualization": None, "catalog_entries": [], "error": None,
-        }
     _progress(on_progress, "supervisor", "agent_complete", "Routing this analytical request to the SQL generation agent.")
     prior_turns = []
     if req.session_id and req.conversation_id:
@@ -375,27 +344,6 @@ def _run_ask(req: QueryRequest, on_progress=None):
             "assumptions_and_limitations": agent_analysis.get("assumptions_and_limitations") or agent_analysis.get("limitations") or [],
         }
         visualization = None
-        gap_reply = None
-        if status == "needs_information":
-            gap_prompt = (
-                "Review this analysis gap. Update Knowledge Catalog metadata only when supported "
-                "by a trusted source. Return the configured JSON response format.\n\n"
-                + "Original question: " + req.question.strip()
-                + "\nSelected dataset: " + (req.dataset_id or "none")
-                + "\nSQL agent response: " + json.dumps(reply, default=str)
-            )
-            try:
-                _progress(on_progress, "knowledge_gap", "agent_start", "Calling the Knowledge Catalog agent to review the gap.")
-                gap_raw = call_data_agent("knowledge_gap", gap_prompt, on_progress=on_progress)
-                gap_reply = _agent_json(gap_raw, "knowledge_gap")
-                _progress(on_progress, "knowledge_gap", "agent_complete", "Knowledge Catalog agent returned its review.")
-            except Exception as gap_exc:
-                gap_reply = {
-                    "agent": "knowledge_gap",
-                    "status": "error",
-                    "message": f"Knowledge Gap Agent request failed: {gap_exc}",
-                    "data": {},
-                }
 
         if status == "success" and columns and rows:
             visualization_context = {
@@ -446,8 +394,6 @@ def _run_ask(req: QueryRequest, on_progress=None):
             for index, asset in enumerate(catalog_assets)
             if isinstance(asset, dict)
         ]
-        if gap_reply:
-            data["knowledge_gap_agent"] = gap_reply
         error = summary if status in ("needs_information", "error") else None
         return {
             **reply,
@@ -465,7 +411,6 @@ def _run_ask(req: QueryRequest, on_progress=None):
             "catalog_entries": catalog_entries,
             "error": error,
             "agent_response": reply,
-            "knowledge_gap_response": gap_reply,
             "visualization": visualization,
         }
     except Exception as exc:
@@ -513,80 +458,6 @@ def history_conversation(conversation_id: str, session_id: str):
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Could not load this conversation: {exc}") from exc
 
-
-def _run_catalog_agent(req: KnowledgeCatalogRequest, on_progress=None):
-    """Route catalog metadata questions and gap reviews through the saved Knowledge Gap agent."""
-    question = req.question.strip()
-    if not question:
-        raise HTTPException(status_code=400, detail="Question cannot be empty.")
-    prompt = (
-        "Act as the Knowledge Catalog Agent. Review the user's request for the selected dataset, "
-        "identify metadata gaps or requested catalog improvements, and ground every conclusion in "
-        "trusted source information available to you. If connected catalog write tools are available, "
-        "apply only supported metadata updates requested by the user. If no write tool is available "
-        "or a source is missing, return a proposed update and clearly state that it was not applied. "
-        "Never claim an update succeeded unless the tool confirms it. Do not invent asset details. "
-        "Return the configured JSON response format with status, message, and structured data such as "
-        "gaps_found, affected_assets, updates_applied, proposed_updates, evidence, and follow_up.\n\n"
-        "User request: " + question
-    )
-    if req.dataset_id:
-        prompt += f"\nSelected BigQuery dataset: {req.dataset_id}. Keep the review scoped to this dataset."
-    if req.session_id and req.conversation_id:
-        try:
-            previous = get_conversation(req.session_id, req.conversation_id)[-8:]
-            if previous:
-                context = [{"question": turn["question"], "answer": turn["result"].get("summary", "")} for turn in previous]
-                prompt += "\n\nRecent turns in this conversation for context:\n" + json.dumps(context, ensure_ascii=False)
-        except Exception as exc:
-            _progress(on_progress, "supervisor", "agent_step", f"Could not load saved conversation context: {exc}")
-    try:
-        _progress(on_progress, "knowledge_gap", "agent_start", "Calling the Knowledge Catalog agent.")
-        raw = call_data_agent("knowledge_gap", prompt, on_progress=on_progress)
-        reply = _agent_json(raw, "knowledge_gap")
-        _progress(on_progress, "knowledge_gap", "agent_complete", "Knowledge Catalog agent completed its review.")
-        return {
-            **reply,
-            "question": question,
-            "dataset_id": req.dataset_id,
-            "data": reply.get("data") if isinstance(reply.get("data"), dict) else {},
-            "agent_response": reply,
-        }
-    except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Knowledge Catalog Agent request failed: {exc}",
-        ) from exc
-
-
-@app.post("/catalog-agent")
-def knowledge_catalog_agent(req: KnowledgeCatalogRequest):
-    return _run_catalog_agent_and_persist(req)
-
-
-@app.post("/catalog-agent/stream")
-def knowledge_catalog_agent_stream(req: KnowledgeCatalogRequest):
-    return _sse_response(_run_catalog_agent_and_persist, req)
-
-
-def _run_catalog_agent_and_persist(req: KnowledgeCatalogRequest, on_progress=None):
-    result = _run_catalog_agent(req, on_progress=on_progress)
-    if req.session_id and req.conversation_id and req.turn_id:
-        saved_result = {
-            **result,
-            "response_type": "catalog",
-            "summary": result.get("message") or "The Knowledge Catalog agent completed its review.",
-            "columns": [], "rows": [], "row_count": 0, "sql": None,
-            "analysis": {"question_understanding": req.question, "approach": "Routed to the Knowledge Catalog agent for metadata review."},
-            "visualization": None,
-        }
-        try:
-            save_turn(req.session_id, req.conversation_id, req.turn_id, req.turn_index, req.dataset_id, req.question, saved_result)
-            result["history_saved"] = True
-        except Exception as exc:
-            result["history_saved"] = False
-            result["history_warning"] = f"The catalog review completed, but saving chat history failed: {exc}"
-    return result
 
 @app.get("/datasets")
 def list_datasets():
@@ -997,23 +868,6 @@ def dataset_context(dataset_id: str):
             status_code=502,
             detail=f"Could not read BigQuery metadata for {PROJECT_ID}.{dataset_id}: {exc}",
         ) from exc
-
-@app.post("/search")
-def search_catalog(req: SearchRequest):
-    """Search the Knowledge Catalog for data assets."""
-    entries = search_entries(
-        req.query,
-        req.page_size,
-        dataset_id=req.dataset_id,
-    )
-    entry_info = extract_entry_info(entries)
-    if req.dataset_id:
-        entry_info = [
-            entry
-            for entry in entry_info
-            if entry["fqn"].startswith(f"bigquery:{PROJECT_ID}.{req.dataset_id}.")
-        ]
-    return {"entries": entry_info}
 
 @app.post("/visualize")
 def visualize_results(req: VisualizationRequest):

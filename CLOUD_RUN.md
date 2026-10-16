@@ -141,4 +141,4 @@ Then open `http://127.0.0.1:8080`. Do not make the service public unless the app
 
 ## Configuration
 
-The saved agent IDs and agent project already have defaults in `backend/conversational_agents.py`. If the agents move, set `CONVERSATIONAL_API_PROJECT_ID`, `SQL_DATA_AGENT_ID`, `VISUALIZATION_DATA_AGENT_ID`, and `KNOWLEDGE_GAP_DATA_AGENT_ID` as Cloud Run environment variables. Do not set `GOOGLE_APPLICATION_CREDENTIALS` on Cloud Run when using the service identity.
+The saved agent IDs and agent project already have defaults in `backend/conversational_agents.py`. If the agents move, set `CONVERSATIONAL_API_PROJECT_ID`, `SQL_DATA_AGENT_ID`, and `VISUALIZATION_DATA_AGENT_ID` as Cloud Run environment variables. Do not set `GOOGLE_APPLICATION_CREDENTIALS` on Cloud Run when using the service identity.
