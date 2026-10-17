@@ -5,6 +5,7 @@ import ChatComposer from './ChatComposer'
 import DeletePolicyDialog from './DeletePolicyDialog'
 import PolicyReview from './PolicyReview'
 import UnderwritingPipeline from './UnderwritingPipeline'
+import UnderwritingRuns from './UnderwritingRuns'
 import { ApplicationOverview, PipelinePreparation, PolicyLibraryTable, readWorkspaceRoute, writeWorkspaceRoute } from './CasePreparation'
 import {
   Activity, ArrowDownToLine, ArrowRight, BarChart3, Check,
@@ -201,7 +202,7 @@ function VisualizationAgent({ question, rows, columns, initialAnalysis }) {
   if (!charts.length) return <div className="no-results">No charts could be created from these results.</div>
   return <div className="visualization-agent">
     <div className="visualization-recommendation"><span><Sparkles size={15} /> VISUALIZATION AGENT · {charts.length} CHARTS</span><p>Explore the same query results through different chart views.</p></div>
-    <div className="charts-grid row row-cols-1 row-cols-xl-2 g-3 gap-0">{charts.map((chart, index) => <ChartCard key={`${chart.chart_type}-${index}`} chart={chart} rows={rows} numericColumns={analysis.numeric_columns || []} xColumns={analysis.x_columns || []} />)}</div>
+    <div className="charts-grid">{charts.map((chart, index) => <ChartCard key={`${chart.chart_type}-${index}`} chart={chart} rows={rows} numericColumns={analysis.numeric_columns || []} xColumns={analysis.x_columns || []} />)}</div>
   </div>
 }
 
@@ -300,15 +301,17 @@ function PremiumCalculationPanel({ calculation }) {
     ['Applicant age', calculation.age == null ? 'Pending' : `${calculation.age} · age band ${calculation.age_band || 'not selected'}`],
     ['Cover amount', money(calculation.sum_assured)],
     ['Policy term', calculation.term_years == null ? 'Pending' : `${calculation.term_years} years`],
-    ['Base rate per ₹1,000', calculation.base_rate_per_1000 == null ? 'Pending' : money(calculation.base_rate_per_1000)],
-    ['Rating factors', [calculation.term_multiplier, calculation.tobacco_multiplier, calculation.medical_multiplier, calculation.occupation_multiplier].some((value) => value == null) ? 'Review required' : `Term ${calculation.term_multiplier} × tobacco ${calculation.tobacco_multiplier} × medical ${calculation.medical_multiplier} × occupation ${calculation.occupation_multiplier}`],
+    [calculation.insurance_type === 'health' ? 'Age-and-cover base premium' : 'Base rate per ₹1,000', calculation.insurance_type === 'health' ? money(calculation.annual_base_premium) : calculation.base_rate_per_1000 == null ? 'Pending' : money(calculation.base_rate_per_1000)],
+    ['Rating factors', calculation.insurance_type === 'health' ? calculation.zone_multiplier == null ? 'Review required' : `Zone ${calculation.zone_multiplier} × medical ${calculation.medical_multiplier} × tobacco ${calculation.tobacco_multiplier}` : [calculation.term_multiplier, calculation.tobacco_multiplier, calculation.medical_multiplier, calculation.occupation_multiplier].some((value) => value == null) ? 'Review required' : `Term ${calculation.term_multiplier} × tobacco ${calculation.tobacco_multiplier} × medical ${calculation.medical_multiplier} × occupation ${calculation.occupation_multiplier}`],
     ['Annual premium before tax', money(calculation.annual_premium_before_tax)],
     [`${calculation.payment_frequency || 'Payment'} installment before tax`, money(calculation.installment_before_tax)],
     ['Tax / total payable', calculation.tax == null ? 'Pending current tax verification' : `${money(calculation.tax)} · ${money(calculation.total_payable)}`],
   ]
   return <section className="uw-premium-breakdown">
-    <div className="uw-premium-breakdown-heading"><div><small>ILLUSTRATIVE · NOT AN APPROVED QUOTE</small><strong>{calculation.status === 'illustrative_only' ? money(calculation.annual_premium_before_tax) : 'No premium calculated'}</strong><span>{calculation.policy_name || 'Selected sample policy'} · {calculation.source_filename || 'policy configuration'}</span></div><span>{(calculation.status || 'pending').replaceAll('_', ' ')}</span></div>
+    <div className="uw-premium-breakdown-heading"><div><small>INDICATIVE ANNUAL PREMIUM · BEFORE TAX</small><strong>{calculation.status === 'illustrative_only' ? money(calculation.annual_premium_before_tax) : 'No premium calculated'}</strong><span>{calculation.policy_name || 'Selected product policy'} · {calculation.source_filename || 'policy configuration'}</span></div><span>{(calculation.status || 'pending').replaceAll('_', ' ')}</span></div>
     <div className="uw-premium-breakdown-grid">{rows.map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>
+    {calculation.pricing_ai && <section className="pricing-ai-reasoning"><strong>{calculation.pricing_ai.status === 'verified' ? 'Gemini calculation verified against the rate grid' : calculation.pricing_ai.status === 'mismatch' ? 'AI proposal differed · configured calculation used' : 'Configured calculation · AI response unavailable'}</strong><p>{calculation.pricing_ai.explanation}</p><small>{calculation.pricing_ai.model} · Rate source: {calculation.source_filename}</small></section>}
+    {calculation.formula && <p><strong>Calculation:</strong> {calculation.formula}</p>}
     {calculation.findings?.map((finding, index) => <p key={`premium-finding-${index}`}>{finding}</p>)}
   </section>
 }
@@ -575,6 +578,31 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
 
   async function startPipeline() { await runPipeline('run') }
 
+  async function saveHealthReview(payload) {
+    if (!selectedCase || runningStep || saving) return
+    setSaving(true)
+    try {
+      const updated = await post(`/underwriting/cases/${encodeURIComponent(selectedCase.application_id)}/health-review`, payload)
+      setCases((previous) => previous.map((item) => item.application_id === updated.application_id ? updated : item))
+      await runPipeline('retry', { result_id: payload.result_id })
+      return updated
+    } finally { setSaving(false) }
+  }
+
+  async function regenerateUnderwriting(payload) {
+    if (!selectedCase || runningStep || saving) return
+    setSaving(true)
+    try {
+      const updated = await post(`/underwriting/cases/${encodeURIComponent(selectedCase.application_id)}/pipeline/regenerate`, payload)
+      setCases((previous) => previous.map((item) => item.application_id === updated.application_id ? updated : item))
+      setStepResult(null); setPipelineEvents([])
+      setNotice('Previous run saved. Review the selected policies, then start the new underwriting run.')
+      onPanelChange('pipeline')
+      return updated
+    } finally { setSaving(false) }
+  }
+
+
   async function recordAction(action, reviewNote = '') {
     if (!selectedCase || saving) return
     if (['Approve', 'Decline', 'Refer', 'Request information'].includes(action) && !reviewNote.trim()) {
@@ -651,9 +679,10 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
       {selectedCase && <><header className="uw-review-title"><div><span className="uw-eyebrow"><Heart size={14} /> {(selectedCase.insurance_type || 'health').toUpperCase()} INSURANCE · {selectedCase.plan}</span><h2>{selectedCase.applicant}</h2><p>{selectedCase.application_id} · Received {new Date(selectedCase.received_at).toLocaleDateString()} <span className={`uw-status-pill ${statusClass(selectedCase.status)}`}>{selectedCase.status}</span></p></div></header>
       <div className="case-workspace-tabs" role="tablist" aria-label="Application workspace"><button type="button" role="tab" aria-selected={panel !== 'pipeline'} onClick={() => onPanelChange('overview')}><FileText size={16} /> Application details</button><button type="button" role="tab" aria-selected={panel === 'pipeline'} onClick={() => onPanelChange('pipeline')}><Activity size={16} /> {workflow.current_step === 'complete' ? 'Decision dashboard' : 'Underwriting pipeline'} <span>{Object.keys(workflow.steps || {}).length}/7</span></button><button type="button" onClick={() => onOpenPolicies(selectedCase)}><ScrollText size={16} /> Applied policies ({selectedCase.policy_selection?.policies?.length || 0})</button></div>
       {notice && <div className="uw-notice" role="status">{notice}</div>}
+      <UnderwritingRuns key={selectedCase.application_id} application={selectedCase} busy={Boolean(runningStep) || saving} onRegenerate={regenerateUnderwriting} PremiumPanel={PremiumCalculationPanel} />
       {panel !== 'pipeline' ? <ApplicationOverview application={selectedCase} onOpenPolicies={() => onOpenPolicies(selectedCase)} onOpenPipeline={() => onPanelChange('pipeline')} /> : !workflow.started_at ? <PipelinePreparation application={selectedCase} readiness={intakeStatus} busy={startingPipeline} onOpenPolicies={() => onOpenPolicies(selectedCase)} onStart={startPipeline} /> : <>
       <div className="case-pipeline-context"><ShieldCheck size={17} /><span>Using {selectedCase.policy_selection?.policies?.length || 0} selected policy versions. The pipeline runs automatically and pauses when employee input is needed.</span><button type="button" onClick={() => onOpenPolicies(selectedCase)}>View policies <ArrowRight size={14} /></button></div>
-      <UnderwritingPipeline key={selectedCase.application_id} application={selectedCase} result={stepResult} busy={runningStep} onRun={() => runPipeline('run')} onResume={(payload) => runPipeline('resume', payload)} onRetry={(result_id) => runPipeline('retry', { result_id })} onDecision={recordAction} saving={saving} events={pipelineEvents} PremiumPanel={PremiumCalculationPanel} /></>}
+      <UnderwritingPipeline key={selectedCase.application_id} application={selectedCase} result={stepResult} busy={runningStep} onRun={() => runPipeline('run')} onResume={(payload) => runPipeline('resume', payload)} onRetry={(result_id) => runPipeline('retry', { result_id })} onDecision={recordAction} saving={saving} events={pipelineEvents} PremiumPanel={PremiumCalculationPanel} onHealthReview={saveHealthReview} /></>}
       </>}
     </section>}
     <p className="uw-footer-note"><ShieldCheck size={14} /> Decision support only · An employee must verify evidence and make the final underwriting decision.</p>

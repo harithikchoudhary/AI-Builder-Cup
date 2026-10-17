@@ -1,0 +1,332 @@
+{
+  "company": "SecureLife Insurance Pvt. Ltd.",
+  "product": "SecureLife Health Shield Plus",
+  "product_code": "SLH-HSP-IND-01",
+  "insurance_type": "health",
+  "version": "1.0.1",
+  "status": "FICTIONAL_POC_ONLY",
+  "effective_date": "2026-10-01",
+  "purpose": "Versioned eligibility, medical triage and annual premium rate grid for SecureLife Health Shield Plus. The employee reviews evidence and records the underwriting decision.",
+  "rules": [
+    {
+      "rule_id": "HSP-01",
+      "topic": "Product eligibility",
+      "rule_text": "This individual health product accepts entry ages 18 through 60 and the configured annual cover options only.",
+      "source_quote": "This individual health product accepts entry ages 18 through 60 and the configured annual cover options only.",
+      "required_evidence": [
+        "Proposal form",
+        "Date of birth",
+        "Requested cover"
+      ],
+      "condition": "Every new individual health application",
+      "applies_when": "Every new individual health application",
+      "action": "Check entry age and the chosen cover against the rate grid.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-01"
+    },
+    {
+      "rule_id": "HSP-02",
+      "topic": "Declared medical conditions",
+      "rule_text": "Declared hypothyroidism requires review of the medical declaration, thyroid laboratory report and consultation record. An employee must select a medical rating class; declarations alone do not establish clinical stability.",
+      "source_quote": "Declared hypothyroidism requires review of the medical declaration, thyroid laboratory report and consultation record. An employee must select a medical rating class; declarations alone do not establish clinical stability.",
+      "required_evidence": [
+        "Medical questionnaire",
+        "Thyroid laboratory report",
+        "Consultation record",
+        "Medication record"
+      ],
+      "condition": "A medical condition is declared",
+      "applies_when": "A medical condition is declared",
+      "action": "Review the medical declaration, laboratory report and consultation before choosing a medical class.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-02"
+    },
+    {
+      "rule_id": "HSP-03",
+      "topic": "Rating class",
+      "rule_text": "STANDARD and CONTROLLED_CONDITION are permitted product rating classes. SPECIALIST_REVIEW requires referral and produces no premium. An unlisted declared condition requires specialist review.",
+      "source_quote": "STANDARD and CONTROLLED_CONDITION are permitted product rating classes. SPECIALIST_REVIEW requires referral and produces no premium. An unlisted declared condition requires specialist review.",
+      "required_evidence": [
+        "Medical evidence",
+        "Employee medical assessment and rationale"
+      ],
+      "condition": "The employee selects the medical rating class",
+      "applies_when": "The employee selects the medical rating class",
+      "action": "Use STANDARD only without declared conditions; use CONTROLLED_CONDITION after evidence review or refer for specialist assessment.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-03"
+    },
+    {
+      "rule_id": "HSP-04",
+      "topic": "Regional rating",
+      "rule_text": "Use the residence state documented in the application to select the configured zone; Karnataka maps to SOUTH_URBAN for this product.",
+      "source_quote": "Use the residence state documented in the application to select the configured zone; Karnataka maps to SOUTH_URBAN for this product.",
+      "required_evidence": [
+        "Applicant regional profile",
+        "Address review record"
+      ],
+      "condition": "Residence state is available",
+      "applies_when": "Residence state is available",
+      "action": "Map the documented state to the configured rating zone.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-04"
+    },
+    {
+      "rule_id": "HSP-05",
+      "topic": "Identity and consent",
+      "rule_text": "Independent identity and address verification, contact details and recorded consent evidence must be resolved by employee review before issuance.",
+      "source_quote": "Independent identity and address verification, contact details and recorded consent evidence must be resolved by employee review before issuance.",
+      "required_evidence": [
+        "Identity and address review",
+        "Contact confirmation",
+        "Consent register acknowledgement"
+      ],
+      "condition": "Before employee approval or issuance consideration",
+      "applies_when": "Before employee approval or issuance consideration",
+      "action": "Resolve identity, address, contact and recorded consent evidence; retain the reviewed references.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-05"
+    },
+    {
+      "rule_id": "HSP-06",
+      "topic": "Prior coverage",
+      "rule_text": "Previous insurer confirmation is required when continuity or portability benefits are requested. An employee may record why this requirement is not applicable.",
+      "source_quote": "Previous insurer confirmation is required when continuity or portability benefits are requested. An employee may record why this requirement is not applicable.",
+      "required_evidence": [
+        "Previous policy declaration",
+        "Previous coverage review"
+      ],
+      "condition": "Continuity or portability benefits are requested",
+      "applies_when": "Continuity or portability benefits are requested",
+      "action": "Review previous coverage evidence and record the applicability of continuity conditions.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-06"
+    },
+    {
+      "rule_id": "HSP-07",
+      "topic": "Premium calculation",
+      "rule_text": "Annual premium before tax equals the age-and-cover base premium multiplied by the configured zone, medical and tobacco factors, rounded half up to two decimal places. Tax and issuance are separate.",
+      "source_quote": "Annual premium before tax equals the age-and-cover base premium multiplied by the configured zone, medical and tobacco factors, rounded half up to two decimal places. Tax and issuance are separate.",
+      "required_evidence": [
+        "Product rate grid",
+        "Reviewed rating inputs",
+        "Calculation breakdown"
+      ],
+      "condition": "An indicative annual health premium is requested",
+      "applies_when": "An indicative annual health premium is requested",
+      "action": "Select one age-and-cover base row and multiply by the configured regional, medical and tobacco factors; round half up to two decimals.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-07"
+    },
+    {
+      "rule_id": "HSP-08",
+      "topic": "Decision authority",
+      "rule_text": "The product supports employee consideration only after rating inputs and policy evidence have been reviewed. Outstanding verification requirements produce a request-information recommendation. Only an authorized employee records the final decision.",
+      "source_quote": "The product supports employee consideration only after rating inputs and policy evidence have been reviewed. Outstanding verification requirements produce a request-information recommendation. Only an authorized employee records the final decision.",
+      "required_evidence": [
+        "Completed stage findings",
+        "Policy dispositions",
+        "Premium calculation",
+        "Employee decision rationale"
+      ],
+      "condition": "The review reaches the recommendation stage",
+      "applies_when": "The review reaches the recommendation stage",
+      "action": "Keep unresolved requirements open; an employee records the decision with the supporting evidence and rationale.",
+      "source_pointer": "Product configuration 1.0.1 / HSP-08"
+    }
+  ],
+  "premium_calculation_config": {
+    "product_id": "SLH-HSP-IND-01",
+    "insurance_type": "health",
+    "version": "1.0.1",
+    "currency": "INR",
+    "calculation_method": {
+      "name": "annual_health_premium",
+      "rounding": "HALF_UP",
+      "decimal_places": 2
+    },
+    "eligibility": {
+      "min_entry_age": 18,
+      "max_entry_age": 60,
+      "policy_term_years": 1
+    },
+    "rate_tables": {
+      "annual_base_premiums": [
+        {
+          "min_age": 18,
+          "max_age": 25,
+          "sum_insured_inr": 500000,
+          "premium": 4550.0
+        },
+        {
+          "min_age": 18,
+          "max_age": 25,
+          "sum_insured_inr": 1000000,
+          "premium": 6500
+        },
+        {
+          "min_age": 18,
+          "max_age": 25,
+          "sum_insured_inr": 1500000,
+          "premium": 8450.0
+        },
+        {
+          "min_age": 26,
+          "max_age": 30,
+          "sum_insured_inr": 500000,
+          "premium": 5600.0
+        },
+        {
+          "min_age": 26,
+          "max_age": 30,
+          "sum_insured_inr": 1000000,
+          "premium": 8000
+        },
+        {
+          "min_age": 26,
+          "max_age": 30,
+          "sum_insured_inr": 1500000,
+          "premium": 10400.0
+        },
+        {
+          "min_age": 31,
+          "max_age": 35,
+          "sum_insured_inr": 500000,
+          "premium": 7000.0
+        },
+        {
+          "min_age": 31,
+          "max_age": 35,
+          "sum_insured_inr": 1000000,
+          "premium": 10000
+        },
+        {
+          "min_age": 31,
+          "max_age": 35,
+          "sum_insured_inr": 1500000,
+          "premium": 13000.0
+        },
+        {
+          "min_age": 36,
+          "max_age": 40,
+          "sum_insured_inr": 500000,
+          "premium": 8400.0
+        },
+        {
+          "min_age": 36,
+          "max_age": 40,
+          "sum_insured_inr": 1000000,
+          "premium": 12000
+        },
+        {
+          "min_age": 36,
+          "max_age": 40,
+          "sum_insured_inr": 1500000,
+          "premium": 15600.0
+        },
+        {
+          "min_age": 41,
+          "max_age": 45,
+          "sum_insured_inr": 500000,
+          "premium": 10500.0
+        },
+        {
+          "min_age": 41,
+          "max_age": 45,
+          "sum_insured_inr": 1000000,
+          "premium": 15000
+        },
+        {
+          "min_age": 41,
+          "max_age": 45,
+          "sum_insured_inr": 1500000,
+          "premium": 19500.0
+        },
+        {
+          "min_age": 46,
+          "max_age": 50,
+          "sum_insured_inr": 500000,
+          "premium": 13300.0
+        },
+        {
+          "min_age": 46,
+          "max_age": 50,
+          "sum_insured_inr": 1000000,
+          "premium": 19000
+        },
+        {
+          "min_age": 46,
+          "max_age": 50,
+          "sum_insured_inr": 1500000,
+          "premium": 24700.0
+        },
+        {
+          "min_age": 51,
+          "max_age": 55,
+          "sum_insured_inr": 500000,
+          "premium": 16800.0
+        },
+        {
+          "min_age": 51,
+          "max_age": 55,
+          "sum_insured_inr": 1000000,
+          "premium": 24000
+        },
+        {
+          "min_age": 51,
+          "max_age": 55,
+          "sum_insured_inr": 1500000,
+          "premium": 31200.0
+        },
+        {
+          "min_age": 56,
+          "max_age": 60,
+          "sum_insured_inr": 500000,
+          "premium": 21000.0
+        },
+        {
+          "min_age": 56,
+          "max_age": 60,
+          "sum_insured_inr": 1000000,
+          "premium": 30000
+        },
+        {
+          "min_age": 56,
+          "max_age": 60,
+          "sum_insured_inr": 1500000,
+          "premium": 39000.0
+        }
+      ],
+      "zone_multipliers": {
+        "SOUTH_URBAN": 1.05,
+        "OTHER_INDIA": 1.0
+      },
+      "medical_multipliers": {
+        "STANDARD": 1.0,
+        "CONTROLLED_CONDITION": 1.1
+      },
+      "tobacco_multipliers": {
+        "NON_SMOKER": 1.0,
+        "SMOKER": 1.2
+      }
+    },
+    "state_zone_mapping": {
+      "karnataka": "SOUTH_URBAN"
+    },
+    "default_zone": "OTHER_INDIA",
+    "triage": {
+      "permitted_conditions": [
+        "Hypothyroidism",
+        "Primary hypothyroidism"
+      ],
+      "medical_classes": [
+        "STANDARD",
+        "CONTROLLED_CONDITION",
+        "SPECIALIST_REVIEW"
+      ]
+    },
+    "tax_configuration": {
+      "included": false,
+      "rate": null,
+      "note": "Tax treatment must be confirmed separately; this prototype calculates an annual premium before tax."
+    }
+  },
+  "provenance": {
+    "generated_fixture": true,
+    "insurer_filed_rates": false,
+    "validated_medical_model": false
+  }
+}

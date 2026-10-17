@@ -60,6 +60,35 @@ class PipelineRunRequest(BaseModel):
     confirmed: bool = False
 
 
+class RegenerateRunRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+    expected_run_key: str = Field(min_length=1, max_length=100)
+
+
+class EvidenceDisposition(BaseModel):
+    id: str = Field(max_length=10)
+    disposition: str = Field(pattern="^(verified|not_applicable|pending)$")
+    note: str = Field(default="", max_length=2000)
+    reference: str = Field(default="", max_length=300)
+
+
+class RuleDisposition(BaseModel):
+    id: str = Field(max_length=140)
+    disposition: str = Field(pattern="^(satisfied|not_applicable|more_information)$")
+    note: str = Field(min_length=1, max_length=2000)
+
+
+class HealthRatingReviewRequest(BaseModel):
+    result_id: str = Field(max_length=80)
+    medical_class: str = Field(max_length=50)
+    tobacco_status: str = Field(max_length=30)
+    review_note: str = Field(min_length=1, max_length=2000)
+    evidence_document_ids: list[str] = Field(min_length=1, max_length=100)
+    confirmed: bool = False
+    resolutions: list[EvidenceDisposition] = Field(default_factory=list, max_length=100)
+    rule_reviews: list[RuleDisposition] = Field(default_factory=list, max_length=500)
+
+
 class CasePolicySelectionRequest(BaseModel):
     policy_ids: list[str] = Field(min_length=1, max_length=40)
     primary_policy_id: str = Field(default="", max_length=80)
@@ -497,6 +526,9 @@ def underwriting_document_source(application_id: str, document_id: str):
     if case is None:
         raise HTTPException(status_code=404, detail="Application not found.")
     document = next((item for item in case.get("documents", []) if item.get("document_id") == document_id), None)
+    if document is None:
+        from .underwriting_runs import archived_document
+        document = archived_document(application_id, document_id)
     if not document:
         raise HTTPException(status_code=404, detail="Source document not found.")
     bucket_name = os.getenv("UNDERWRITING_DOCUMENT_BUCKET", "").strip()
@@ -724,6 +756,69 @@ def run_application_pipeline(application_id: str, req: PipelineRunRequest):
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
     return _sse_response(run, req)
+
+
+@app.post("/underwriting/cases/{application_id}/pipeline/regenerate")
+def regenerate_underwriting(application_id: str, req: RegenerateRunRequest):
+    from . import underwriting_runs
+    try:
+        case = underwriting_runs.regenerate(application_id, req.reason, req.expected_run_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not save the previous run and prepare a new review. Refresh the application before retrying.") from exc
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+
+@app.get("/underwriting/cases/{application_id}/health-review")
+def health_review_options(application_id: str):
+    from . import health_case_review
+    try:
+        case = health_underwriting.get_case(application_id)
+        if case is None:
+            raise HTTPException(status_code=404, detail="Application not found.")
+        return health_case_review.options(case)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not load the health product and review checklist.") from exc
+
+
+@app.post("/underwriting/cases/{application_id}/health-review")
+def save_health_review(application_id: str, req: HealthRatingReviewRequest):
+    from . import health_case_review
+    try:
+        case = health_case_review.save_review(application_id, req.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not save the employee health review.") from exc
+    if case is None:
+        raise HTTPException(status_code=404, detail="Application not found.")
+    return case
+
+
+@app.get("/underwriting/cases/{application_id}/runs")
+def underwriting_run_history(application_id: str):
+    from . import underwriting_runs
+    try:
+        return {"runs": underwriting_runs.list_runs(application_id)}
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not load previous underwriting runs.") from exc
+
+
+@app.get("/underwriting/cases/{application_id}/runs/{run_id}")
+def underwriting_saved_run(application_id: str, run_id: str):
+    from . import underwriting_runs
+    try:
+        run = underwriting_runs.get_run(application_id, run_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not load the saved underwriting run.") from exc
+    if not run:
+        raise HTTPException(status_code=404, detail="Saved run not found.")
+    return run
 
 @app.post("/underwriting/cases/{application_id}/workflow/{step_id}")
 def underwriting_workflow_step(application_id: str, step_id: str, req: UnderwritingStepRequest):

@@ -56,19 +56,24 @@ def summarize_step(step, result, case):
         facts = [{"label": "Rules", "value": str(total)}, {"label": "Evidence found", "value": str(counts.get("evidence_found", 0))}, {"label": "Needs review", "value": str(counts.get("review_needed", 0) + counts.get("evidence_missing", 0))}]
         if not total:
             issues.append(f"No extracted {label.lower()} rules are available to compare.")
-        if counts.get("evidence_missing"):
-            issues.append(f"{counts['evidence_missing']} {label.lower()} rules need additional evidence.")
-        if counts.get("review_needed"):
-            issues.append(f"{counts['review_needed']} {label.lower()} rules need employee interpretation.")
-        issues.extend(review.get("errors", []))
+        unresolved = [r for r in review.get("rules", []) if (r.get("employee_review") or {}).get("disposition") not in {"satisfied", "not_applicable"}]
+        facts[-1]["value"] = str(len(unresolved))
+        if unresolved:
+            issues.append(f"{len(unresolved)} {label.lower()} rules need an employee disposition or additional evidence.")
+        if unresolved:
+            issues.extend(review.get("errors", []))
         attention = bool(issues)
     elif step == "risk":
         risk = result.get("risk_assessment", {})
-        title = "Medical review needed" if risk.get("score") is None else "Risk evidence collected"
+        triaged = risk.get("assessment_type") == "policy_based_triage" and risk.get("status") == "triage_completed"
+        title = "Product risk triage completed" if triaged else "Medical review needed" if risk.get("score") is None else "Risk evidence collected"
         summary = "Review the health declarations, rule findings and evidence gaps together before pricing."
-        facts = [{"label": "Risk rating", "value": risk.get("band") if risk.get("score") is not None else "Not assessed"}]
-        if risk.get("score") is None:
-            issues.append("A validated risk assessment is not available. Qualified medical or underwriting review remains required.")
+        facts = [{"label": "Risk rating", "value": risk.get("band") if triaged or risk.get("score") is not None else "Not assessed"}]
+        if risk.get("score") is None and not triaged:
+            if risk.get("assessment_type") == "policy_based_triage":
+                issues.append("Complete the employee rating assessment below and refresh the findings.")
+            else:
+                issues.append("A validated risk assessment is not available. Qualified medical or underwriting review remains required.")
         issues.extend(result.get("open_evidence_gaps", []))
         attention = True
     elif step == "premium":

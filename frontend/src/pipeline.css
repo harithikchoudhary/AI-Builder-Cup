@@ -1,4 +1,80 @@
 /* Underwriting: one live run, focused employee checkpoints, one final dashboard. */
+.health-review-panel { padding:20px; margin:20px 0; border:1px solid var(--accent-border); border-radius:12px; background:var(--surface); }
+.health-review-panel>h4 { margin:0 0 10px; font-size:18px; color:var(--ink-strong); }
+.health-review-panel p { font-size:13px; line-height:1.8; color:var(--ink); }
+.health-product-context { padding:12px 14px; margin:16px 0; border-radius:8px; background:var(--accent-soft); }
+.health-product-context strong,.health-product-context small { display:block; font-size:13px; line-height:1.7; color:var(--ink-strong); }
+.health-product-context small { font-size:11px; color:var(--ink-muted); }
+.health-rate-grid { padding:14px 0; margin:14px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.health-rate-grid>summary { color:var(--accent-ink); font-size:13px; font-weight:600; cursor:pointer; }
+.health-rate-grid>p { color:var(--ink-muted); font-size:13px; line-height:1.8; }
+.health-rate-grid .pipeline-table-scroll { max-height:340px; overflow:auto; }
+.health-factor-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:15px; }
+.health-factor-grid>div { padding:12px; border:1px solid var(--border); border-radius:8px; background:var(--surface-subtle); min-width:0; }
+.health-factor-grid strong { color:var(--ink-strong); font-size:12px; }.health-factor-grid p { font-size:12px; overflow-wrap:anywhere; }
+.pricing-ai-reasoning { padding:15px; border:1px solid var(--accent-border); border-radius:9px; margin:16px 0; background:var(--accent-soft); }
+.pricing-ai-reasoning strong { color:var(--ink-strong); font-size:13px; }.pricing-ai-reasoning p { color:var(--ink); font-size:13px; line-height:1.8; }.pricing-ai-reasoning small { color:var(--ink-muted); font-size:11px; }
+@media(max-width:650px) { .health-factor-grid { grid-template-columns:1fr; } }
+.health-rating-fields { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.health-rating-fields label { display:grid; align-content:start; gap:8px; color:var(--ink-strong); font-size:13px; }
+.health-rating-fields small { font-size:11px; line-height:1.7; color:var(--ink-muted); }
+.health-review-panel select,.health-review-item>input,.health-review-item>textarea { width:100%; min-width:0; padding:10px 12px; border:1px solid var(--border-strong); border-radius:8px; color:var(--ink-strong); background:var(--surface); font:400 13px/1.6 var(--font-sans); }
+.health-review-panel fieldset { min-width:0; padding:14px; border:1px solid var(--border); border-radius:9px; margin:18px 0; }
+.health-review-panel legend { padding:0 6px; font-size:12px; font-weight:600; color:var(--ink-strong); }
+.health-source-checks { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.health-source-checks label { display:flex; align-items:flex-start; gap:8px; min-width:0; font-size:12px; }
+.health-source-checks input { flex:none; margin-top:3px; }
+.health-source-checks a { color:var(--accent-ink); overflow-wrap:anywhere; line-height:1.6; }
+.health-evidence-review { border-top:1px solid var(--border); padding:14px 0; }
+.health-evidence-review>summary { color:var(--accent-ink); font-size:13px; font-weight:600; cursor:pointer; }
+.health-review-item { display:grid; gap:9px; padding:16px 0; border-bottom:1px solid var(--border); }
+.health-review-item strong { font-size:13px; color:var(--ink-strong); }.health-review-item small { color:var(--ink-muted); font-size:11px; }.health-review-item p { margin:0; }
+@media(max-width:650px) { .health-review-panel { padding:15px; }.health-rating-fields,.health-source-checks { grid-template-columns:1fr; } }
+.underwriting-runs { margin:18px 0; padding:18px 20px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+.runs-toolbar { display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.runs-toolbar strong { color:var(--ink-strong); font-size:14px; }
+.runs-toolbar p { margin:5px 0 0; color:var(--ink-muted); font-size:12px; line-height:1.6; }
+.runs-actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.runs-regenerate,.runs-history { margin-top:18px; padding-top:18px; border-top:1px solid var(--border); min-width:0; }
+.runs-regenerate h4,.runs-history>h4 { margin:0 0 10px; font-size:17px; color:var(--ink-strong); }
+.runs-regenerate>p { font-size:13px; color:var(--ink); line-height:1.8; }
+.runs-regenerate>label:not(.checkpoint-confirm) { display:grid; gap:8px; margin-top:16px; font-size:13px; color:var(--ink-strong); }
+.runs-regenerate textarea { width:100%; padding:12px; border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); color:var(--ink-strong); font:inherit; resize:vertical; }
+.runs-snapshot-banner { padding:14px 16px; margin:16px 0; border:1px solid var(--accent-border); border-radius:9px; background:var(--accent-soft); color:var(--ink-strong); font-size:13px; }
+.runs-snapshot-banner p { margin:6px 0 0; overflow-wrap:anywhere; font-size:12px; line-height:1.7; }
+.runs-history .underwriting-dashboard { padding-top:12px; }
+@media(max-width:700px) { .runs-toolbar { flex-direction:column; align-items:stretch; }.underwriting-runs { padding:16px; }.runs-actions button { justify-content:center; } }
+.case-journey { min-width:0; margin-bottom:22px; padding:22px; border:1px solid var(--border); border-radius:14px; background:var(--surface); }
+.journey-applicant { display:flex; align-items:flex-start; gap:12px; }
+.journey-applicant>svg { flex:none; color:var(--accent-ink); margin-top:3px; }
+.journey-applicant strong { color:var(--ink-strong); font-size:19px; }
+.journey-applicant p { margin:5px 0; color:var(--ink); font-size:13px; line-height:1.6; }
+.journey-applicant small { color:var(--ink-muted); font-size:12px; overflow-wrap:anywhere; }
+.journey-roadmap { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; list-style:none; padding:18px 0; margin:18px 0 0; border-top:1px solid var(--border); }
+.journey-roadmap li { display:flex; gap:10px; align-items:flex-start; min-width:0; }
+.journey-roadmap li>span { display:grid; place-items:center; width:27px; height:27px; flex:none; border-radius:50%; background:var(--surface-muted); color:var(--ink); font-size:12px; }
+.journey-roadmap li[aria-current="step"]>span { color:var(--on-accent); background:var(--accent); }
+.journey-roadmap strong { display:block; color:var(--ink-strong); font-size:13px; }
+.journey-roadmap small { display:block; margin-top:5px; color:var(--ink-muted); font-size:12px; line-height:1.6; }
+.journey-now { padding:13px 15px; margin:0; border-radius:9px; background:var(--accent-soft); color:var(--ink-strong); font-size:13px; line-height:1.7; }
+.journey-now span { display:block; color:var(--ink-muted); font-size:12px; }
+.journey-results h4 { margin:16px 0 8px; color:var(--ink-strong); font-size:18px; }
+.journey-results>p { color:var(--ink-muted); font-size:13px; line-height:1.7; }
+.journey-results td { width:33%; }
+.journey-results td ul { margin:9px 0 0; padding-left:17px; }
+.journey-results td li+li { margin-top:7px; }
+.finding-label { display:block; margin-top:20px; color:var(--ink-muted); font-size:11px; font-weight:700; letter-spacing:.05em; }
+.finding-action { padding:16px 18px; margin:18px 0; border:1px solid var(--border); border-radius:10px; background:var(--surface-subtle); }
+.finding-action.needs-attention { border-color:var(--warning-border); background:var(--warning-soft); }
+.pipeline-result .finding-action h5 { margin:0 0 8px; font-size:14px; }
+.pipeline-result .finding-action p { margin:8px 0 0; font-size:13px; line-height:1.7; }
+.finding-action ul { font-size:13px; line-height:1.7; }
+.finding-evidence { padding:10px 0; border-top:1px solid var(--border); }
+.stage-question { margin:6px 0 0; color:var(--ink-muted); font-size:11px; line-height:1.6; }
+.flow-stage-list button.has-open-requirements>span { color:var(--warning); background:var(--warning-soft); border-color:var(--warning-border); }
+.flow-stage-list button.has-open-requirements small { color:var(--warning); }
+.checkpoint-explainer { padding:12px; border-radius:8px; background:var(--surface); }
+@media(max-width:650px) { .case-journey { padding:16px; }.journey-roadmap { grid-template-columns:1fr; gap:14px; }.journey-results td { min-width:180px; } }
 .underwriting-workspace:has(.automatic-pipeline)>.uw-heading,
 .underwriting-workspace:has(.underwriting-dashboard)>.uw-heading { display:none; }
 .uw-review-workspace:has(.underwriting-dashboard) .case-pipeline-context { display:none; }

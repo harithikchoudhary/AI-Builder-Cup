@@ -61,7 +61,7 @@ def _latest_state_cte():
 def _hydrate_case(case_json, metadata_json):
     case = _json_or_empty(case_json)
     state = _json_or_empty(metadata_json)
-    for key in ("policy_selection", "selected_policy_id", "documents"):
+    for key in ("policy_selection", "selected_policy_id", "documents", "risk", "risk_factors", "premium_calculation", "health_rating_inputs", "evidence_resolutions", "health_triage", "followup_provenance", "followup_evidence"):
         if key in state:
             case[key] = state[key]
     if state.get("resulting_status"):
@@ -118,7 +118,12 @@ def _case_state(case):
             "selected_policy_id": case.get("selected_policy_id"),
             "documents": case.get("documents", []),
             "decision": case.get("decision"), "review_note": case.get("review_note"),
-            "recommendation": case.get("suggested_action")}
+            "recommendation": case.get("suggested_action"),
+            "risk": case.get("risk"), "risk_factors": case.get("risk_factors", []),
+            "premium_calculation": case.get("premium_calculation"),
+            "health_rating_inputs": case.get("health_rating_inputs"),
+            "evidence_resolutions": case.get("evidence_resolutions", {}), "health_triage": case.get("health_triage"),
+            "followup_provenance": case.get("followup_provenance"), "followup_evidence": case.get("followup_evidence", {})}
 
 
 def _save_case_event(case, event_type, reason, extra=None):
@@ -185,7 +190,11 @@ def start_pipeline(application_id):
         raise ValueError("Apply at least one company policy before starting the pipeline.")
     if not any(item.get("policy_kind") == "regulatory" for item in policies):
         raise ValueError("Apply at least one regulatory policy before starting the pipeline.")
-    case["workflow"] = {"version": 4, "steps": {}, "current_step": "application_details",
+    previous_workflow = case.get("workflow", {})
+    case["workflow"] = {"version": 5, "steps": {}, "current_step": "application_details",
+                        "run_id": previous_workflow.get("run_id") or f"RUN-{uuid.uuid4().hex}",
+                        "run_number": previous_workflow.get("run_number", 1),
+                        "previous_run_id": previous_workflow.get("previous_run_id"),
                         "started_at": datetime.now(timezone.utc).isoformat()}
     case["status"] = "In review"
     _save_case_event(case, "Underwriting pipeline started", "Employee started review using the saved policy selection.")
@@ -390,7 +399,18 @@ def run_workflow_step(application_id, step_id, confirm=False, attestation="", re
         case["documents"] = process_and_store_documents(application_id, files) + missing_docs
 
     premium = None
-    if step_id == "premium":
+    if step_id in {"risk", "premium"} and case.get("insurance_type", "health") == "health":
+        from .health_product import product_configuration, triage_health_case, calculate_health_premium
+        health_product = product_configuration(case)
+        if health_product:
+            case["health_triage"] = triage_health_case(case, health_product)
+            if step_id == "premium":
+                case["health_pricing_configuration"] = health_product
+                calculation = calculate_health_premium(health_product["config"], case.get("date_of_birth"), case.get("health_rating_inputs") or {})
+                if case["health_triage"]["status"] != "triage_completed":
+                    calculation.update(premium=None, status="manual_review", findings=case["health_triage"]["findings"])
+                case["premium_calculation"] = {**calculation, **{key: value for key, value in health_product.items() if key != "config"}}
+    if step_id == "premium" and case.get("insurance_type", "health") != "health":
         from .policy_library import get_policy, read_policy_source
         selected_policy_id = case.get("selected_policy_id")
         selected_policy = primary_policy
