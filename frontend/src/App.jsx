@@ -34,6 +34,19 @@ async function post(path, data) {
   return response.json()
 }
 
+async function put(path, data) {
+  const response = await fetch(path, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(typeof error.detail === 'string' ? error.detail : `Request failed (${response.status})`)
+  }
+  return response.json()
+}
+
 async function postStream(path, data, onProgress) {
   const response = await fetch(path, {
     method: 'POST',
@@ -293,6 +306,11 @@ function Answer({ entry }) {
 
 const underwritingStatuses = ['All applications', 'Ready for underwriting', 'New', 'In review', 'Needs information', 'Referred', 'Approved', 'Declined']
 const statusClass = (status) => status.toLowerCase().replaceAll(' ', '-')
+const durationLabel = (seconds) => {
+  if (seconds == null) return 'Not available yet'
+  const minutes = Math.round(seconds / 60)
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} hr ${minutes % 60} min`
+}
 
 function PremiumCalculationPanel({ calculation }) {
   const money = (value) => value == null ? 'Pending' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: calculation.currency || 'INR', maximumFractionDigits: 2 }).format(value)
@@ -300,6 +318,9 @@ function PremiumCalculationPanel({ calculation }) {
     ['Applicant age', calculation.age == null ? 'Pending' : `${calculation.age} · age band ${calculation.age_band || 'not selected'}`],
     ['Cover amount', money(calculation.sum_assured)],
     ['Policy term', calculation.term_years == null ? 'Pending' : `${calculation.term_years} years`],
+    ['Tobacco classification used', calculation.tobacco_status || 'Pending'],
+    ['Medical classification used', calculation.medical_class || 'Pending'],
+    ['Occupation classification used', calculation.occupation_class || 'Pending'],
     ['Base rate per ₹1,000', calculation.base_rate_per_1000 == null ? 'Pending' : money(calculation.base_rate_per_1000)],
     ['Rating factors', [calculation.term_multiplier, calculation.tobacco_multiplier, calculation.medical_multiplier, calculation.occupation_multiplier].some((value) => value == null) ? 'Review required' : `Term ${calculation.term_multiplier} × tobacco ${calculation.tobacco_multiplier} × medical ${calculation.medical_multiplier} × occupation ${calculation.occupation_multiplier}`],
     ['Annual premium before tax', money(calculation.annual_premium_before_tax)],
@@ -307,8 +328,9 @@ function PremiumCalculationPanel({ calculation }) {
     ['Tax / total payable', calculation.tax == null ? 'Pending current tax verification' : `${money(calculation.tax)} · ${money(calculation.total_payable)}`],
   ]
   return <section className="uw-premium-breakdown">
-    <div className="uw-premium-breakdown-heading"><div><small>ILLUSTRATIVE · NOT AN APPROVED QUOTE</small><strong>{calculation.status === 'illustrative_only' ? money(calculation.annual_premium_before_tax) : 'No premium calculated'}</strong><span>{calculation.policy_name || 'Selected sample policy'} · {calculation.source_filename || 'policy configuration'}</span></div><span>{(calculation.status || 'pending').replaceAll('_', ' ')}</span></div>
+    <div className="uw-premium-breakdown-heading"><div><small>ILLUSTRATIVE—SYNTHETIC PRICING · NOT AN APPROVED QUOTE</small><strong>{calculation.status === 'illustrative_only' ? money(calculation.annual_premium_before_tax) : 'No premium calculated'}</strong><span>{calculation.policy_name || 'Selected sample policy'} · policy version {calculation.policy_version || 'not specified'} · {calculation.source_filename || 'policy configuration'}</span></div><span>{(calculation.status || 'pending').replaceAll('_', ' ')}</span></div>
     <div className="uw-premium-breakdown-grid">{rows.map(([label, value]) => <div key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>
+    <details><summary>Tariff configuration and formula</summary><p>Configuration version: {calculation.config_version || 'not specified'}</p><p>Calculation method: {calculation.calculation_method?.name || 'not specified'} · rounding {calculation.calculation_method?.rounding || 'not specified'} to {calculation.calculation_method?.decimal_places ?? 'not specified'} decimal places.</p><code>{calculation.calculation_method?.formula || 'Formula unavailable for this result.'}</code></details>
     {calculation.findings?.map((finding, index) => <p key={`premium-finding-${index}`}>{finding}</p>)}
   </section>
 }
@@ -591,6 +613,8 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
   const [intakeError, setIntakeError] = useState('')
   const [startingPipeline, setStartingPipeline] = useState(false)
   const [pipelineEvents, setPipelineEvents] = useState([])
+  const [operationalMetrics, setOperationalMetrics] = useState(null)
+  const [operationalMetricsError, setOperationalMetricsError] = useState('')
   useEffect(() => {
     if (!applicationId) return
     let cancelled = false
@@ -618,6 +642,15 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
     }).catch((requestError) => setError(requestError.message)).finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => {
+    if (applicationId) return
+    fetch('/underwriting/metrics').then(async (response) => {
+      const body = await response.json()
+      if (!response.ok) throw new Error(body.detail || 'Could not load underwriting metrics.')
+      return body
+    }).then(setOperationalMetrics).catch((requestError) => setOperationalMetricsError(requestError.message))
+  }, [applicationId])
+
   const selectedCase = cases.find((item) => item.application_id === selectedId)
   async function submitIntake(event) { event.preventDefault(); setIntakeBusy(true); setIntakeError(''); try { const response = await fetch('/underwriting/applications', { method: 'POST', body: new FormData(event.currentTarget) }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.detail || `Intake failed (${response.status})`); setCases((previous) => [body, ...previous]); setSelectedId(body.application_id); setWorkspaceCaseId(body.application_id); setStepResult(null); setIntakeOpen(false) } catch (err) { setIntakeError(err.message) } finally { setIntakeBusy(false) } }
   const filteredCases = cases.filter((item) => (filter === 'All applications' || item.status === filter) && `${item.application_id} ${item.applicant} ${item.plan} ${item.status}`.toLowerCase().includes(search.toLowerCase()))
@@ -641,6 +674,63 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
       setNotice(`${action} recorded for ${updated.application_id}.`)
       return updated
     } catch (requestError) { setNotice(requestError.message) } finally { setSaving(false) }
+  }
+
+  async function reviewRequirement(requirementId, review) {
+    if (!workspaceCaseId || saving) throw new Error('Wait for the current case action to finish.')
+    setSaving(true)
+    setNotice('')
+    try {
+      const updated = await put(
+        `/underwriting/cases/${encodeURIComponent(workspaceCaseId)}/requirements/${encodeURIComponent(requirementId)}`,
+        review,
+      )
+      setCases((previous) => previous.map((item) => item.application_id === updated.application_id ? updated : item))
+      setStepResult(updated.workflow?.pending_result || null)
+      setNotice('Evidence review saved.')
+      return updated
+    } catch (requestError) {
+      setNotice(requestError.message)
+      throw requestError
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function uploadCaseDocuments(files, requirementId) {
+    if (!workspaceCaseId || saving) throw new Error('Wait for the current case action to finish.')
+    const form = new FormData()
+    files.forEach((file) => form.append('files', file))
+    if (requirementId) form.append('requirement_id', requirementId)
+    setSaving(true)
+    setNotice('')
+    try {
+      const response = await fetch(`/underwriting/cases/${encodeURIComponent(workspaceCaseId)}/documents`, {
+        method: 'POST',
+        body: form,
+      })
+      const body = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(body.detail || `Document upload failed (${response.status})`)
+      setCases((previous) => previous.map((item) => item.application_id === body.application_id ? body : item))
+      setStepResult(body.workflow?.pending_result || null)
+      setNotice('Additional documents processed. Verify their extracted fields and refresh affected findings.')
+      return body
+    } catch (requestError) {
+      setNotice(requestError.message)
+      throw requestError
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function trackReviewTime(seconds) {
+    if (!workspaceCaseId) return
+    try {
+      return await post(`/underwriting/cases/${encodeURIComponent(workspaceCaseId)}/review-time`, { seconds })
+    } catch (requestError) {
+      setNotice(`Reviewer time was not recorded: ${requestError.message}`)
+      throw requestError
+    }
   }
 
   async function runPipeline(command = 'run', payload = {}) {
@@ -691,6 +781,7 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
   return <section className={`underwriting-workspace${workspaceCaseId ? '' : ' applications-list-workspace'}`}>
     <div className={`uw-heading${workspaceCaseId ? '' : ' applications-list-heading'}`}><div>{workspaceCaseId && <><span className="uw-eyebrow"><Heart size={14} /> INSURANCE · EMPLOYEE WORKSPACE</span><h1>Application workspace</h1><p>Review the application, apply policies, and run underwriting.</p></>}{!workspaceCaseId && <h1>Applications</h1>}</div>{!workspaceCaseId && <button className="uw-start-button" onClick={() => { setIntakeOpen((open) => !open); setIntakeError('') }}><FilePlus2 size={16} /> New application</button>}</div>
     {!workspaceCaseId && <div className="uw-metrics"><article><span>Received today</span><strong>{loading ? '—' : today}</strong></article><article><span>Pending review</span><strong>{loading ? '—' : pending}</strong></article><article><span>Open issues</span><strong>{loading ? '—' : flagged}</strong></article></div>}
+    {!workspaceCaseId && <section className="uw-operational-panel"><div><span className="uw-eyebrow">WORKFLOW MEASURES</span><h2>Evidence and review operations</h2><p>Use these measures to identify avoidable follow-ups and evidence bottlenecks.</p></div>{operationalMetricsError && <div className="error-panel">{operationalMetricsError}</div>}{operationalMetrics && <><div className="uw-operational-grid"><article><span>Average time to decision-ready</span><strong>{durationLabel(operationalMetrics.operations?.average_seconds_to_decision_ready)}</strong><small>{operationalMetrics.operations?.cases_reaching_decision_ready || 0} cases reached readiness</small></article><article><span>Applicant follow-ups per case</span><strong>{Number(operationalMetrics.operations?.applicant_follow_ups_per_case || 0).toFixed(2)}</strong><small>{operationalMetrics.operations?.applicant_follow_up_requests || 0} total requests</small></article><article><span>Extraction correction rate</span><strong>{(100 * (operationalMetrics.operations?.extraction_correction_rate || 0)).toFixed(1)}%</strong><small>{operationalMetrics.operations?.extraction_corrections || 0} corrections · {operationalMetrics.operations?.document_field_reviews || 0} field reviews</small></article><article><span>Human referral rate</span><strong>{(100 * (operationalMetrics.operations?.human_referral_rate || 0)).toFixed(1)}%</strong><small>{operationalMetrics.operations?.referral_events || 0} referral actions</small></article><article><span>Average reviewer active dashboard time</span><strong>{durationLabel(operationalMetrics.operations?.average_reviewer_active_seconds_per_case)}</strong><small>{operationalMetrics.operations?.reviewer_time_definition}</small></article><article><span>Cases blocked by pricing configuration</span><strong>{operationalMetrics.operations?.cases_blocked_by_missing_pricing_configuration || 0}</strong><small>Rate configuration missing or unsupported</small></article><article><span>Cases with missing documents</span><strong>{operationalMetrics.operations?.cases_missing_documents || 0}</strong><small>Cases still awaiting a required document</small></article><article><span>Cases with unreadable documents</span><strong>{operationalMetrics.operations?.cases_with_unreadable_documents || 0}</strong><small>Cases requiring manual review or a clearer copy</small></article></div><div className="uw-readiness-counts"><strong>Decision readiness counts</strong>{Object.entries(operationalMetrics.decision_readiness || {}).map(([status, count]) => <span key={status}>{status.replaceAll('_', ' ')}: {count}</span>)}</div>{operationalMetrics.operations?.most_common_open_requirements?.length > 0 && <details className="uw-common-gaps"><summary>Most common open evidence items</summary><ol>{operationalMetrics.operations.most_common_open_requirements.map((item) => <li key={item.requirement}>{item.requirement} · {item.count}</li>)}</ol></details>}{operationalMetrics.operations?.referral_reasons?.length > 0 && <details className="uw-common-gaps"><summary>Referral reasons</summary><ol>{operationalMetrics.operations.referral_reasons.map((item) => <li key={item.reason}>{item.reason} · {item.count}</li>)}</ol></details>}</>}</section>}
     {intakeOpen && !workspaceCaseId && <ApplicationIntakeForm onSubmit={submitIntake} onClose={() => setIntakeOpen(false)} ready={Boolean(intakeStatus?.ready)} busy={intakeBusy} error={intakeError} />}
     {error && <div className="error-panel"><CircleAlert size={18} />{error}</div>}
     {!workspaceCaseId ? <section className="uw-applications-panel">
@@ -705,7 +796,7 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
       {notice && <div className="uw-notice" role="status">{notice}</div>}
       {panel !== 'pipeline' ? <ApplicationOverview application={selectedCase} onOpenPolicies={() => onOpenPolicies(selectedCase)} onOpenPipeline={() => onPanelChange('pipeline')} /> : !workflow.started_at ? <PipelinePreparation application={selectedCase} readiness={intakeStatus} busy={startingPipeline} onOpenPolicies={() => onOpenPolicies(selectedCase)} onStart={startPipeline} /> : <>
       <div className="case-pipeline-context"><ShieldCheck size={17} /><span>Using {selectedCase.policy_selection?.policies?.length || 0} selected policy versions. The pipeline runs automatically and pauses when employee input is needed.</span><button type="button" onClick={() => onOpenPolicies(selectedCase)}>View policies <ArrowRight size={14} /></button></div>
-      <UnderwritingPipeline key={selectedCase.application_id} application={selectedCase} result={stepResult} busy={runningStep} onRun={() => runPipeline('run')} onResume={(payload) => runPipeline('resume', payload)} onRetry={(result_id) => runPipeline('retry', { result_id })} onDecision={recordAction} saving={saving} events={pipelineEvents} PremiumPanel={PremiumCalculationPanel} /></>}
+      <UnderwritingPipeline key={selectedCase.application_id} application={selectedCase} result={stepResult} busy={runningStep} onRun={() => runPipeline('run')} onResume={(payload) => runPipeline('resume', payload)} onRetry={(result_id) => runPipeline('retry', { result_id })} onDecision={recordAction} onReviewRequirement={reviewRequirement} onRerun={(payload) => runPipeline('rerun', payload)} onUploadDocuments={uploadCaseDocuments} onTrackReviewTime={trackReviewTime} saving={saving} events={pipelineEvents} PremiumPanel={PremiumCalculationPanel} /></>}
       </>}
     </section>}
     <p className="uw-footer-note"><ShieldCheck size={14} /> Decision support only · An employee must verify evidence and make the final underwriting decision.</p>
