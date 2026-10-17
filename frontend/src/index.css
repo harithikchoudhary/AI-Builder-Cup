@@ -328,7 +328,7 @@
 
 @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-@media (min-width: 761px) {
+@media (min-width: 901px) {
   .sidebar-collapsed { display: none; }
 }
 
@@ -360,6 +360,13 @@
   .suggestion-grid { @apply gap-2; }
   .page-footer { @apply mt-[45px]; }
   .page-footer>span:last-child { @apply hidden; }
+}
+
+@media (max-width: 900px) {
+  .app-shell.mobile-sidebar-open .nav-scrim { display: block; }
+  .sidebar { position:fixed; inset:0 auto 0 0; z-index:20; width:265px; height:100dvh; min-height:100dvh; transform:translateX(-100%); transition:transform .3s; }
+  .sidebar.sidebar-open { transform:translateX(0); }
+  .sidebar.sidebar-collapsed { width:265px; }
 }
 
 @media (max-width: 480px) {

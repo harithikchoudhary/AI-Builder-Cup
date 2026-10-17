@@ -10,7 +10,7 @@ import {
   Activity, ArrowDownToLine, ArrowRight, BarChart3, Check,
   ChevronDown, CircleAlert, Cloud, Code2, Compass, Copy, Database,
   ExternalLink, Layers3, LoaderCircle, Menu, MessageSquareText, Plus,
-  Search, Send, ShieldCheck, Sparkles, Table2, Trophy, X,
+  Search, Send, ShieldCheck, SlidersHorizontal, Sparkles, Table2, Trophy, X,
   ClipboardCheck, Heart, Clock3, FileText, CheckCircle2, FilePlus2, ScrollText, Trash2,
 } from 'lucide-react'
 import {
@@ -328,13 +328,26 @@ function ApplicationIntakeForm({ onSubmit, onClose, ready, busy, error }) {
 
 const policyTypes = ['health', 'travel', 'motor', 'life', 'other']
 const policyCategories = [
-  { id: 'company', label: 'Customer policies', description: 'Company underwriting, eligibility, and product rules applied to customer applications.', icon: ScrollText },
-  { id: 'regulatory', label: 'Regulatory policies', description: 'IRDAI circulars and other regulatory sources used during underwriting.', icon: ShieldCheck },
+  { id: 'company', label: 'Customer policies', icon: ScrollText },
+  { id: 'regulatory', label: 'Regulatory policies', icon: ShieldCheck },
 ]
+
+function catalogPolicyStatus(policy) {
+  const today = new Date().toISOString().slice(0, 10)
+  if (policy.effective_to && policy.effective_to.slice(0, 10) < today) return 'Expired'
+  if (policy.effective_from && policy.effective_from.slice(0, 10) > today) return 'Scheduled'
+  if (!Array.isArray(policy.extracted_rules?.rules) || !policy.extracted_rules.rules.length) return 'Needs review'
+  return 'In library'
+}
+
 function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesApplied }) {
   const [type, setType] = useState(application?.insurance_type || 'health')
   const [kind, setKind] = useState('company')
   const [policies, setPolicies] = useState([])
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [productFilter, setProductFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All statuses')
+  const [effectiveDate, setEffectiveDate] = useState('')
   const [selectedPolicyIds, setSelectedPolicyIds] = useState([])
   const [mode, setMode] = useState('library')
   const [primaryPolicyId, setPrimaryPolicyId] = useState('')
@@ -368,8 +381,28 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
   const casePolicies = locked ? application.policy_selection?.policies || [] : policies.filter((policy) => !application || policy.policy_kind === 'regulatory' || !policy.product_code || policy.product_code.toUpperCase() === application.product_code?.toUpperCase())
   const visiblePolicies = casePolicies.filter((policy) => policy.policy_kind === kind)
   const currentCategory = policyCategories.find((category) => category.id === kind) || policyCategories[0]
+  const products = [...new Map(visiblePolicies.filter((policy) => policy.product_code).map((policy) => [policy.product_code, { code: policy.product_code, name: policy.product_name }])).values()]
+  const filteredPolicies = visiblePolicies.filter((policy) => {
+    const searchText = [policy.policy_name, policy.insurer_name, policy.product_name, policy.product_code, policy.uin, policy.version].filter(Boolean).join(' ').toLowerCase()
+    if (catalogSearch && !searchText.includes(catalogSearch.trim().toLowerCase())) return false
+    if (productFilter && policy.product_code !== productFilter) return false
+    if (statusFilter !== 'All statuses' && catalogPolicyStatus(policy) !== statusFilter) return false
+    if (effectiveDate) {
+      const date = effectiveDate
+      if ((policy.effective_from && policy.effective_from.slice(0, 10) > date) || (policy.effective_to && policy.effective_to.slice(0, 10) < date)) return false
+    }
+    return true
+  })
+  const applicableCount = filteredPolicies.filter((policy) => {
+    if (!application) return Boolean(policy.product_code)
+    if ((policy.insurance_type || '').toLowerCase() !== (application.insurance_type || 'health').toLowerCase()) return false
+    return policy.policy_kind === 'regulatory' || Boolean(policy.product_code && policy.product_code.toUpperCase() === (application.product_code || '').toUpperCase())
+  }).length
+  const needsMappingCount = filteredPolicies.filter((policy) => policy.policy_kind === 'company' && !policy.product_code).length
   const selectedCompanyPolicies = casePolicies.filter((policy) => policy.policy_kind === 'company' && selectedPolicyIds.includes(policy.policy_id))
-  const selectedForDeletion = visiblePolicies.filter((policy) => selectedPolicyIds.includes(policy.policy_id) && policies.some((entry) => entry.policy_id === policy.policy_id))
+  const primaryCompanyPolicies = selectedCompanyPolicies.filter((policy) => policy.product_code && (!application || policy.product_code.toUpperCase() === (application.product_code || '').toUpperCase()))
+  const hasUnmappedSelectedCompany = selectedCompanyPolicies.some((policy) => !policy.product_code)
+  const selectedForDeletion = filteredPolicies.filter((policy) => selectedPolicyIds.includes(policy.policy_id) && policies.some((entry) => entry.policy_id === policy.policy_id))
   const selectedRegulatoryPolicies = casePolicies.filter((policy) => policy.policy_kind === 'regulatory' && selectedPolicyIds.includes(policy.policy_id))
   async function deleteSelectedPolicies() {
     if (!deleteTargets?.length || deleting) return
@@ -390,7 +423,7 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
     } catch (err) { setDeleteError(err.message) } finally { setDeleting(false) }
   }
   function clearVisibleSelection() {
-    const visibleIds = new Set(visiblePolicies.map((policy) => policy.policy_id))
+    const visibleIds = new Set(filteredPolicies.map((policy) => policy.policy_id))
     setSelectedPolicyIds((current) => current.filter((id) => !visibleIds.has(id)))
   }
   function togglePolicy(policyId) {
@@ -399,11 +432,13 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
   async function applySelectedPolicies() {
     if (!application) return setError('Open an application from the inbox before applying policies.')
     if (!selectedCompanyPolicies.length) return setError('Select at least one matching company policy.')
+    if (hasUnmappedSelectedCompany) return setError('Remove company policies marked “Needs mapping” or add their product code before applying this selection.')
+    if (!primaryCompanyPolicies.length) return setError('Select a company policy mapped to this application product.')
     setSaving(true); setError('')
     try {
       const response = await fetch(`/underwriting/cases/${encodeURIComponent(application.application_id)}/policies`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ policy_ids: selectedPolicyIds, primary_policy_id: selectedCompanyPolicies.some((policy) => policy.policy_id === primaryPolicyId) ? primaryPolicyId : selectedCompanyPolicies[0].policy_id }),
+        body: JSON.stringify({ policy_ids: selectedPolicyIds, primary_policy_id: primaryCompanyPolicies.some((policy) => policy.policy_id === primaryPolicyId) ? primaryPolicyId : primaryCompanyPolicies[0].policy_id }),
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.detail || 'Could not apply policies to the application.')
@@ -476,8 +511,7 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
   return <section className="underwriting-workspace policy-workspace">
     {deleteTargets && <DeletePolicyDialog policies={deleteTargets} busy={deleting} error={deleteError} onCancel={() => { setDeleteTargets(null); setDeleteError('') }} onDelete={deleteSelectedPolicies} />}
     {application && <div className="case-context-banner"><div><span>SELECTING POLICIES FOR</span><strong>{application.applicant} · {application.application_id}</strong><small>{application.insurance_type} insurance · {application.plan} · {application.product_code}</small></div><button type="button" className="subtle-action" onClick={onReturnToApplication} disabled={saving}>Return to application <ArrowRight size={15} /></button></div>}
-    <div className="uw-heading"><div><span className="uw-eyebrow"><ScrollText size={14} /> POLICY LIBRARY</span><h1>Policies & rules</h1><p>Upload a source to identify policy entries, review the suggested details, and choose what to add to the library.</p></div></div>
-    <div className="policy-mode-switch" role="tablist" aria-label="Policy entry method"><button type="button" role="tab" aria-selected={mode === 'library'} className={mode === 'library' ? 'active' : ''} onClick={() => setMode('library')}><ScrollText size={15} /> Policy library</button><button type="button" role="tab" aria-selected={mode === 'analyze'} className={mode === 'analyze' ? 'active' : ''} onClick={() => { setMode('analyze'); setError('') }}><Sparkles size={15} /> Upload & review</button><button type="button" role="tab" aria-selected={mode === 'manual'} className={mode === 'manual' ? 'active' : ''} onClick={() => { setMode('manual'); setError('') }}><FilePlus2 size={15} /> Add one manually</button></div>
+    <div className={`uw-heading policy-catalog-heading${mode === 'library' ? ' policy-catalog-heading-library' : ''}`}><div>{mode !== 'library' && <span className="uw-eyebrow"><ScrollText size={14} /> POLICY CATALOG</span>}<h1>{mode === 'library' ? 'Policy Catalog' : mode === 'analyze' ? 'Upload & review' : 'Add policy manually'}</h1>{mode !== 'library' && <p>Policy drafts are reviewed before they are added to the catalog.</p>}</div><div className="policy-catalog-actions">{mode === 'library' ? <><button type="button" className="uw-start-button" onClick={() => { setMode('analyze'); setError('') }}><Sparkles size={16} /> Upload & review</button><button type="button" className="subtle-action" onClick={() => { setMode('manual'); setError('') }}><FilePlus2 size={16} /> Add manually</button></> : <button type="button" className="subtle-action" onClick={() => setMode('library')}><ArrowRight size={15} /> Back to policy catalog</button>}</div></div>
     {mode === 'analyze' ? <>
       <ol className="policy-import-flow" aria-label="Policy upload process"><li className={!analysis ? 'current' : ''}><span>1</span> Upload & analyze</li><li className={analysis ? 'current' : ''}><span>2</span> Review & edit</li><li><span>3</span> Add to policy library</li></ol>
       <form className="uw-intake-form policy-upload-form" onSubmit={analyze}>
@@ -496,7 +530,7 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
       <div className="uw-intake-actions"><button className="uw-start-button" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" size={16} /> : <FilePlus2 size={16} />} Add policy</button></div>
     </form> : null}
     {message && <p className="uw-notice" role="status">{message}</p>}{error && <div className="error-panel"><CircleAlert size={16} />{error}</div>}
-    <section className="uw-card policy-list-card">
+    {mode === 'library' && <section className="uw-card policy-list-card">
       <div className="policy-category-tabs" role="tablist" aria-label="Policy categories">{policyCategories.map((category, index) => {
         const Icon = category.icon
         const count = casePolicies.filter((policy) => policy.policy_kind === category.id).length
@@ -506,16 +540,34 @@ function PoliciesWorkspace({ application, onReturnToApplication, onPoliciesAppli
           const next = event.key === 'Home' ? 0 : event.key === 'End' ? policyCategories.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + policyCategories.length) % policyCategories.length
           setKind(policyCategories[next].id)
           document.getElementById(`policy-category-${policyCategories[next].id}`)?.focus()
-        }}><Icon size={19} /><span><strong>{category.label}</strong><small>{category.id === 'company' ? 'Insurer & product rules' : 'Regulations & circulars'}</small></span><b aria-label={`${count} policies`}>{policyLoading ? '…' : count}</b></button>
+        }}><Icon size={17} /><span><strong>{category.label}</strong></span><b aria-label={`${count} policies`}>{policyLoading ? '…' : count}</b></button>
       })}</div>
       <div id="policy-category-panel" role="tabpanel" aria-labelledby={`policy-category-${kind}`} tabIndex={0}>
-      <div className="uw-table-toolbar"><div><span className="block-label">{currentCategory.label.toUpperCase()}</span><strong>{policyLoading ? 'Loading…' : `${visiblePolicies.length} policies · ${type}`}</strong><p className="policy-category-description">{currentCategory.description}</p></div><div className="uw-table-controls"><select value={type} disabled={Boolean(application) || busy || saving || deleting} onChange={(event) => { setType(event.target.value); setSelectedPolicyIds([]); setPrimaryPolicyId('') }} aria-label="Filter policies by insurance type">{policyTypes.map((item) => <option key={item} value={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select></div></div>
-      {application && <div className="case-policy-selection-bar"><div><strong>{selectedCompanyPolicies.length} customer + {selectedRegulatoryPolicies.length} regulatory selected</strong><small>{locked ? 'Policy versions are locked for this active pipeline.' : 'Select from both categories, then apply the policies together.'}</small></div>{selectedCompanyPolicies.length > 0 && <label>Primary product policy<select value={selectedCompanyPolicies.some((policy) => policy.policy_id === primaryPolicyId) ? primaryPolicyId : selectedCompanyPolicies[0].policy_id} disabled={locked} onChange={(event) => setPrimaryPolicyId(event.target.value)}>{selectedCompanyPolicies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.policy_name}</option>)}</select></label>}<button type="button" className="uw-start-button" disabled={saving || locked || !selectedCompanyPolicies.length} onClick={applySelectedPolicies}><Check size={15} /> {saving ? 'Applying…' : 'Apply policies & return'}</button></div>}
-      {!application && <p className="case-library-hint">Select policies below to manage the library. Open an application to apply policies to an underwriting review.</p>}
-      {!locked && <div className="policy-library-bulk-actions"><span><strong>{selectedForDeletion.length}</strong> {kind === 'company' ? 'customer' : 'regulatory'} policies selected</span><div><button type="button" className="subtle-action" disabled={!selectedForDeletion.length || deleting || saving} onClick={clearVisibleSelection}>Clear selection</button><button type="button" className="policy-delete-button" disabled={!selectedForDeletion.length || policyLoading || deleting || saving || busy} onClick={() => { setDeleteError(''); setDeleteTargets([...selectedForDeletion]) }}><Trash2 size={15} /> Delete selected</button></div></div>}
-      <PolicyLibraryTable emptyMessage={`No ${currentCategory.label.toLowerCase()} in this view. Upload a source to add entries for this insurance type.`} policies={visiblePolicies} selectedIds={selectedPolicyIds} locked={locked || deleting || saving} loading={policyLoading} onToggle={togglePolicy} onSelectVisible={(ids, checked) => setSelectedPolicyIds((current) => checked ? [...new Set([...current, ...ids])] : current.filter((id) => !ids.includes(id)))} />
+      <section className="policy-filter-section" aria-label="Policy filters">
+      <div className="policy-filter-heading">
+        <div className="policy-filter-title"><SlidersHorizontal size={15} /><strong>FILTER POLICIES</strong></div>
+        <div className="policy-catalog-counts" role="status">
+          <strong>{policyLoading ? 'Loading…' : `${filteredPolicies.length} ${filteredPolicies.length === 1 ? 'policy' : 'policies'}`}</strong>
+          <span>{application ? `${applicableCount} applicable` : `${applicableCount} mapped`}</span>
+          {needsMappingCount > 0 && <span className="needs-mapping">{needsMappingCount} need mapping</span>}
+        </div>
+        {!locked && selectedForDeletion.length > 0 && <div className="policy-library-bulk-actions">
+          <span><strong>{selectedForDeletion.length}</strong> selected</span>
+          <div><button type="button" className="subtle-action" disabled={!selectedForDeletion.length || deleting || saving} onClick={clearVisibleSelection}>Clear</button><button type="button" className="policy-delete-button" disabled={!selectedForDeletion.length || policyLoading || deleting || saving || busy} onClick={() => { setDeleteError(''); setDeleteTargets([...selectedForDeletion]) }}><Trash2 size={15} /> Delete</button></div>
+        </div>}
       </div>
-    </section>
+      <div className="policy-catalog-filters">
+        <label className="policy-search"><span>Search</span><div className="policy-search-control"><Search size={16} /><input value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Policy, insurer, product code…" aria-label="Search policies" /></div></label>
+        <label>Insurance type<select value={type} disabled={Boolean(application) || busy || saving || deleting} onChange={(event) => { setType(event.target.value); setProductFilter(''); setSelectedPolicyIds([]); setPrimaryPolicyId('') }} aria-label="Filter policies by insurance type">{policyTypes.map((item) => <option key={item} value={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select></label>
+        <label>Product<select value={productFilter} onChange={(event) => setProductFilter(event.target.value)} aria-label="Filter policies by product"><option value="">All products</option>{products.map((product) => <option key={product.code} value={product.code}>{product.name ? `${product.name} · ${product.code}` : product.code}</option>)}</select></label>
+        <label>Status<select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter policies by status">{['All statuses', 'In library', 'Expired', 'Scheduled', 'Needs review'].map((status) => <option key={status}>{status}</option>)}</select></label>
+        <label>Effective on<input type="date" value={effectiveDate} onChange={(event) => setEffectiveDate(event.target.value)} aria-label="Filter policies by effective date" /></label>
+      </div>
+      </section>
+      {application && <div className="case-policy-selection-bar"><div><strong>{selectedCompanyPolicies.length} customer + {selectedRegulatoryPolicies.length} regulatory selected</strong><small>{locked ? 'Policy versions are locked for this active pipeline.' : hasUnmappedSelectedCompany ? 'Remove selected company policies marked Needs mapping, or map them to the product before applying.' : 'Select applicable policies from both categories, then apply them together.'}</small></div>{primaryCompanyPolicies.length > 0 && <label>Primary product policy<select value={primaryCompanyPolicies.some((policy) => policy.policy_id === primaryPolicyId) ? primaryPolicyId : primaryCompanyPolicies[0].policy_id} disabled={locked} onChange={(event) => setPrimaryPolicyId(event.target.value)}>{primaryCompanyPolicies.map((policy) => <option key={policy.policy_id} value={policy.policy_id}>{policy.policy_name}</option>)}</select></label>}<button type="button" className="uw-start-button" disabled={saving || locked || !primaryCompanyPolicies.length || hasUnmappedSelectedCompany} onClick={applySelectedPolicies}><Check size={15} /> {saving ? 'Applying…' : 'Apply policies & return'}</button></div>}
+      <PolicyLibraryTable emptyMessage={`No ${currentCategory.label.toLowerCase()} match these filters. Upload a source to add entries for this insurance type.`} policies={filteredPolicies} allPolicies={casePolicies} selectedIds={selectedPolicyIds} application={application} locked={locked || deleting || saving} loading={policyLoading} onToggle={togglePolicy} onSelectVisible={(ids, checked) => setSelectedPolicyIds((current) => checked ? [...new Set([...current, ...ids])] : current.filter((id) => !ids.includes(id)))} />
+      </div>
+    </section>}
     <p className="uw-footer-note"><ShieldCheck size={14} /> Extracted text is a review aid. Confirm the original document, effective dates, jurisdiction, and applicability before underwriting use.</p>
   </section>
 }
@@ -636,13 +688,13 @@ function UnderwritingWorkspace({ onAskAnalytics, onOpenPolicies, applicationId, 
   }, [workspaceCaseId, runningStep, workflow.pipeline_status])
 
 
-  return <section className="underwriting-workspace">
-    <div className="uw-heading"><div><span className="uw-eyebrow"><Heart size={14} /> INSURANCE · EMPLOYEE WORKSPACE</span><h1>{workspaceCaseId ? 'Application workspace' : 'Applications'}</h1><p>{workspaceCaseId ? 'Review the application, apply policies, and run underwriting.' : 'Review received applications and move each case through underwriting.'}</p></div>{!workspaceCaseId && <button className="uw-start-button" onClick={() => { setIntakeOpen((open) => !open); setIntakeError('') }}><FilePlus2 size={16} /> New application</button>}</div>
-    {!workspaceCaseId && <div className="uw-metrics"><article><span>Applications</span><strong>{loading ? '—' : cases.length}</strong><small>Submitted applications</small></article><article><span>Received today</span><strong>{loading ? '—' : today}</strong><small>Intake volume</small></article><article><span>Pending review</span><strong>{loading ? '—' : pending}</strong><small>Needs employee action</small></article><article><span>With open issues</span><strong>{loading ? '—' : flagged}</strong><small>Missing or inconsistent info</small></article></div>}
+  return <section className={`underwriting-workspace${workspaceCaseId ? '' : ' applications-list-workspace'}`}>
+    <div className={`uw-heading${workspaceCaseId ? '' : ' applications-list-heading'}`}><div>{workspaceCaseId && <><span className="uw-eyebrow"><Heart size={14} /> INSURANCE · EMPLOYEE WORKSPACE</span><h1>Application workspace</h1><p>Review the application, apply policies, and run underwriting.</p></>}{!workspaceCaseId && <h1>Applications</h1>}</div>{!workspaceCaseId && <button className="uw-start-button" onClick={() => { setIntakeOpen((open) => !open); setIntakeError('') }}><FilePlus2 size={16} /> New application</button>}</div>
+    {!workspaceCaseId && <div className="uw-metrics"><article><span>Received today</span><strong>{loading ? '—' : today}</strong></article><article><span>Pending review</span><strong>{loading ? '—' : pending}</strong></article><article><span>Open issues</span><strong>{loading ? '—' : flagged}</strong></article></div>}
     {intakeOpen && !workspaceCaseId && <ApplicationIntakeForm onSubmit={submitIntake} onClose={() => setIntakeOpen(false)} ready={Boolean(intakeStatus?.ready)} busy={intakeBusy} error={intakeError} />}
     {error && <div className="error-panel"><CircleAlert size={18} />{error}</div>}
     {!workspaceCaseId ? <section className="uw-applications-panel">
-      <div className="uw-table-toolbar"><div><span className="block-label"><ClipboardCheck size={15} /> APPLICATIONS</span><strong>{filteredCases.length} of {cases.length} applications</strong></div><div className="uw-table-controls"><label className="uw-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search applicant, ID, or plan" aria-label="Search applications" /></label><select id="uw-filter" value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter by status">{underwritingStatuses.map((item) => <option key={item}>{item}</option>)}</select></div></div>
+      <div className="uw-table-toolbar"><div><strong>Showing {filteredCases.length} of {cases.length}</strong></div><div className="uw-table-controls"><label className="uw-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search applicant, ID, or plan" aria-label="Search applications" /></label><select id="uw-filter" value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter by status">{underwritingStatuses.map((item) => <option key={item}>{item}</option>)}</select></div></div>
       {loading ? <div className="uw-loading"><LoaderCircle className="spin" size={18} /> Loading applications…</div> : <div className="uw-table-scroll"><table className="uw-applications-table"><thead><tr><th>Select</th><th>Application</th><th>Applicant</th><th>Product</th><th>Received</th><th>Status</th><th>Risk assessment</th></tr></thead><tbody>{filteredCases.map((item) => <tr key={item.application_id} className={selectedId === item.application_id ? 'selected' : ''} onClick={() => setSelectedId(item.application_id)}><td><input type="radio" name="selected-application" checked={selectedId === item.application_id} onChange={() => setSelectedId(item.application_id)} aria-label={`Select ${item.application_id}`} /></td><td><strong>{item.application_id}</strong></td><td>{item.applicant}</td><td>{item.plan}</td><td>{new Date(item.received_at).toLocaleDateString()}</td><td><span className={`uw-status-pill ${statusClass(item.status)}`}>{item.status}</span></td><td><span className={`uw-risk-pill ${statusClass(item.risk?.band || 'not assessed')}`}><strong>{item.risk?.band || 'Not assessed'}</strong><b>{item.risk?.score ?? '—'}</b></span></td></tr>)}</tbody></table>{!filteredCases.length && <div className="uw-empty uw-empty-state"><FileText size={22} /><strong>{cases.length ? 'No applications match this search.' : 'No applications yet'}</strong><span>{cases.length ? 'Try another search or status.' : 'Start with a submitted application and its source documents.'}</span>{!cases.length && <button className="uw-start-button" onClick={() => setIntakeOpen(true)}><FilePlus2 size={16} /> Start an application</button>}</div>}</div>}
       <div className="uw-table-action"><span>{selectedCase ? <>Selected: <strong>{selectedCase.application_id}</strong> · {selectedCase.applicant}</> : 'Select an application to begin.'}</span><button className="uw-start-button" disabled={!selectedCase} onClick={() => { setWorkspaceCaseId(selectedId); setStepResult(null); setNotice('') }}><FileText size={17} /> Open application <ArrowRight size={16} /></button></div>
     </section> : <section className="uw-review-workspace">
@@ -711,7 +763,7 @@ function App() {
   const chatScrollRef = useRef(null)
 
   function toggleSidebar() {
-    if (window.matchMedia('(max-width: 760px)').matches) {
+    if (window.matchMedia('(max-width: 900px)').matches) {
       setSidebarCollapsed(false)
       setMenuOpen((value) => !value)
     }
@@ -801,11 +853,11 @@ function App() {
     } finally { setActiveQuestion(''); setLoading(false) }
   }
 
-  return <div className="app-shell">
+  return <div className={`app-shell${menuOpen ? ' mobile-sidebar-open' : ''}`}>
     <Sidebar view={view} setView={setView} history={history} selectHistory={(index) => { const entry = history[index]; setSelected(entry); setConversationId(entry.conversation_id); setActiveQuestion(''); setView('ask') }} newQuestion={() => { setSelected(null); setConversationId(makeId()); setActiveQuestion(''); setQuestion(''); setView('ask') }} open={menuOpen} close={() => setMenuOpen(false)} collapsed={sidebarCollapsed} />
     <main className="main-panel">
       <header className="topbar"><div className="top-left"><button className="icon-button" type="button" aria-label={menuOpen ? 'Close navigation' : sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={menuOpen ? 'Close navigation' : sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-controls="workspace-sidebar" onClick={toggleSidebar}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button><span className="breadcrumb"><span className="breadcrumb-product">INTENTRA</span><span>/</span> {view === 'ask' ? 'Data copilot' : view === 'underwriting' ? 'Underwriting' : view === 'policies' ? 'Policies & rules' : 'Data copilot'}</span></div><div className="top-right"><Status state={connection} /><ThemeToggle /><HeaderSettings datasets={datasets} datasetId={datasetId} projectId={projectId} loading={datasetLoading} error={datasetError} onChange={(id) => { setDatasetId(id); setSelected(null); setConversationId(makeId()); setActiveQuestion(''); setQuestion('') }} /></div></header>
-      <div className="content chat-content">
+      <div className={`content chat-content${view === 'policies' ? ' policy-catalog-page' : ''}${view === 'underwriting' && !applicationId ? ' applications-page' : ''}`}>
         {view === 'policies' ? (applicationId && !caseContext ? <div className="case-panel">{caseContextError || 'Loading application policies…'}{caseContextError && <button className="subtle-action" onClick={() => openApplication('')}>Return to applications</button>}</div> : <PoliciesWorkspace application={caseContext} onReturnToApplication={() => openApplication(applicationId, 'pipeline')} onPoliciesApplied={(updated) => { setCaseContext(updated); openApplication(updated.application_id, 'pipeline') }} />) : view === 'underwriting' ? <UnderwritingWorkspace applicationId={applicationId} panel={casePanel} onOpenCase={openApplication} onCloseCase={() => { setApplicationId(''); setCaseContext(null); setCasePanel('overview'); writeWorkspaceRoute('underwriting'); setViewState('underwriting') }} onPanelChange={(nextPanel) => { setCasePanel(nextPanel); writeWorkspaceRoute('underwriting', applicationId, nextPanel) }} onAskAnalytics={(text) => { setSelected(null); setConversationId(makeId()); setQuestion(text); setView('ask') }} onOpenPolicies={(application) => { setCaseContext(application); setApplicationId(application.application_id); setViewState('policies'); writeWorkspaceRoute('policies', application.application_id, 'pipeline') }} /> : view === 'ask' ? <>
           <section className={`chat-workspace ${!selected && !activeQuestion ? 'chat-workspace-empty' : ''}`}>
             {!selected && !activeQuestion && <div className="chat-welcome"><span className="welcome-badge"><Sparkles size={14} /> INTENTRA DATA COPILOT</span><h2>Ask better.<br /><em>See further.</em></h2><p>{datasetId ? 'Your data has a story. Ask a question and Intentra will help you uncover it.' : 'Choose a dataset in Settings → Manage connections, then ask Intentra a question about your data.'}</p>{datasetId && datasetContext && <div className="welcome-dataset-context"><Database size={15} /><strong>{datasetContext.dataset_id}</strong><span>{datasetContext.table_count} {datasetContext.table_count === 1 ? 'table' : 'tables'}</span><small>{datasetContext.project_id}</small></div>}</div>}
