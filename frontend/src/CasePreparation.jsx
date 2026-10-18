@@ -1,0 +1,57 @@
+import { Fragment, useState } from 'react'
+import { PolicyRulesTable } from './PolicyReview'
+import ApplicantDeclaration from './ApplicantDeclaration'
+import HealthRateGrid from './HealthRateGrid'
+import { underwritingSteps } from './UnderwritingPipeline'
+import { ArrowRight, Check, ChevronDown, FileText, Layers3, Play, ScrollText, ShieldCheck } from 'lucide-react'
+
+export function readWorkspaceRoute() {
+  const parts = window.location.hash.slice(1).split('/').filter(Boolean)
+  const view = ['underwriting', 'policies', 'ask'].includes(parts[0]) ? parts[0] : 'underwriting'
+  return { view, applicationId: ['underwriting', 'policies'].includes(view) ? decodeURIComponent(parts[1] || '') : '', panel: parts[2] === 'pipeline' ? 'pipeline' : parts[2] === 'details' ? 'overview' : 'brief' }
+}
+
+export function writeWorkspaceRoute(view, applicationId = '', panel = 'brief') {
+  const suffix = { pipeline: '/pipeline', overview: '/details' }[panel] || ''
+  const hash = `#${view}${applicationId ? `/${encodeURIComponent(applicationId)}${suffix}` : ''}`
+  if (window.location.hash !== hash) window.history.pushState(null, '', hash)
+}
+
+export function ApplicationOverview({ application, onOpenPolicies, onOpenPipeline }) {
+  const details = application.application_details || {}
+  const policies = application.policy_selection?.policies || []
+  const workflow = application.workflow || {}
+  const complete = workflow.current_step === 'complete'
+  const started = Boolean(workflow.started_at)
+  const hasOpenItems = Boolean(workflow.open_items?.length)
+  const facts = [
+    ['Applicant', application.applicant], ['Date of birth', application.date_of_birth],
+    ['Insurance type', application.insurance_type || 'health'], ['Product', application.plan],
+    ['Product code', application.product_code], ['Received', new Date(application.received_at).toLocaleString()],
+    ['Submission channel', application.submission_channel || 'Application intake'],
+    ['Cover requested', details.sum_insured_inr ? `INR ${Number(details.sum_insured_inr).toLocaleString('en-IN')}` : 'Not recorded'],
+  ]
+  return <div className="case-overview-grid">
+    <section className="case-panel"><div className="case-panel-heading"><FileText size={18} /><h3>Application details</h3></div><dl className="case-facts">{facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || 'Not recorded'}</dd></div>)}</dl><ApplicantDeclaration details={details} /></section>
+    <section className="case-panel"><div className="case-panel-heading"><ScrollText size={18} /><h3>Policies for this review</h3><span>{policies.length} selected</span></div>{policies.length ? <ul className="case-policy-summary">{policies.map((policy) => <li key={policy.policy_id}><Check size={15} /><div><strong>{policy.policy_name}</strong><small>{policy.policy_kind === 'company' ? 'Company policy' : 'Regulatory source'} · Version {policy.version || 'not specified'}</small></div></li>)}</ul> : <p className="case-muted">Choose the company and regulatory policies to check against this application before starting underwriting.</p>}<button type="button" className="subtle-action" onClick={onOpenPolicies}><ScrollText size={15} /> {application.workflow?.started_at ? 'View applied policies' : 'Select policies'} <ArrowRight size={15} /></button></section>
+    <section className="case-panel case-panel-wide"><div className="case-panel-heading"><Layers3 size={18} /><h3>Submitted documents</h3><span>{application.documents?.length || 0} documents</span></div><div className="case-document-list">{application.documents?.length ? application.documents.map((doc) => <div key={doc.document_id}><FileText size={18} /><div><strong>{doc.name}</strong><small>{doc.state} · {doc.page_count == null ? 'Extraction pending' : `${doc.page_count} pages`}</small></div>{doc.object_uri && <a href={`/underwriting/cases/${encodeURIComponent(application.application_id)}/documents/${encodeURIComponent(doc.document_id)}/source`} target="_blank" rel="noreferrer">View document <ArrowRight size={14} /></a>}</div>) : <p className="case-muted">No documents have been attached to this application.</p>}</div></section>
+    <div className="case-next-action"><div><strong>{complete ? 'Review the decision dashboard' : started ? 'Continue this application review' : 'Prepare this application for review'}</strong><p>{complete ? hasOpenItems ? 'Processing is complete, but requirements remain open. Review them before recording a decision.' : 'Processing is complete. Review the findings before recording a decision.' : started ? 'Review the saved findings and complete the next checkpoint.' : 'Choose the policies to apply, then start the application review.'}</p></div><button type="button" className="uw-start-button" onClick={onOpenPipeline}>{complete ? 'View decision dashboard' : started ? 'Continue review' : 'Prepare underwriting'} <ArrowRight size={16} /></button></div>
+  </div>
+}
+
+export function PipelinePreparation({ application, busy, onOpenPolicies, onStart }) {
+  const policies = application.policy_selection?.policies || []
+  const company = policies.filter((item) => item.policy_kind === 'company')
+  const regulatory = policies.filter((item) => item.policy_kind === 'regulatory')
+  const ready = company.length > 0 && regulatory.length > 0
+  const guide = <section className="pipeline-setup-guide"><h4>What the review covers</h4><ol>{underwritingSteps.map((step) => <li key={step.id}><strong>{step.title}</strong><span>{step.caption}</span></li>)}</ol></section>
+  return <section className="case-panel pipeline-preparation"><span className="uw-eyebrow"><ShieldCheck size={15} /> UNDERWRITING SETUP</span><h3>Choose what this application will be checked against.</h3><p>Apply the relevant company policies and regulatory sources. Their versions are saved with the application and locked when the pipeline starts.</p><div className="pipeline-setup-checks"><div className={company.length ? 'complete' : ''}><span>{company.length ? <Check size={18} /> : '1'}</span><div><strong>Company policies</strong><small>{company.length ? `${company.length} selected for ${application.product_code}` : 'Select the matching insurer and product rules.'}</small></div></div><div className={regulatory.length ? 'complete' : ''}><span>{regulatory.length ? <Check size={18} /> : '2'}</span><div><strong>Regulatory sources</strong><small>{regulatory.length ? `${regulatory.length} selected for ${application.insurance_type}` : 'Select the requirements applicable to this insurance type.'}</small></div></div></div>{policies.length > 0 && <ul className="case-policy-summary">{policies.map((policy) => <li key={policy.policy_id}><ScrollText size={15} /><div><strong>{policy.policy_name}</strong><small>{policy.policy_kind} · Version {policy.version || 'not specified'}</small></div></li>)}</ul>}{guide}<div className="pipeline-setup-actions"><button type="button" className="subtle-action" onClick={onOpenPolicies}><ScrollText size={16} /> {policies.length ? 'Change selected policies' : 'Select policies'} <ArrowRight size={15} /></button><button type="button" className="uw-start-button" disabled={!ready || busy} onClick={onStart}><Play size={16} /> {busy ? 'Starting…' : 'Start application review'}</button></div>{!ready && <p className="case-setup-hint">Select at least one company policy and one regulatory source to continue. You can upload a new policy from the policy library.</p>}</section>
+}
+
+export function PolicyLibraryTable({ policies, selectedIds, onToggle, onSelectVisible, locked = false, loading = false, emptyMessage }) {
+  const [expanded, setExpanded] = useState('')
+  const allSelected = policies.length > 0 && policies.every((policy) => selectedIds.includes(policy.policy_id))
+  if (loading) return <p className="case-table-state">Loading policy library…</p>
+  if (!policies.length) return <p className="case-table-state">{emptyMessage || 'No matching policies. Add a source document to make it available for this insurance type.'}</p>
+  return <div className="case-policy-table-scroll"><table className="case-policy-table"><thead><tr><th scope="col"><input type="checkbox" aria-label="Select all visible policies" checked={allSelected} disabled={locked} onChange={(event) => onSelectVisible(policies.map((policy) => policy.policy_id), event.target.checked)} /></th><th scope="col">Policy</th><th scope="col">Version</th><th scope="col">Status</th><th scope="col">Rules</th><th scope="col">Source</th></tr></thead><tbody>{policies.map((policy) => <Fragment key={policy.policy_id}><tr className={selectedIds.includes(policy.policy_id) ? 'is-selected' : ''}><td><input type="checkbox" aria-label={`Select ${policy.policy_name}`} checked={selectedIds.includes(policy.policy_id)} disabled={locked} onChange={() => onToggle(policy.policy_id)} /></td><td><strong>{policy.policy_name}</strong><small>{[policy.insurer_name, policy.product_code].filter(Boolean).join(' · ') || policy.policy_id}</small></td><td>{policy.version || '—'}</td><td><span className={`policy-status-pill ${policy.status === 'active' ? 'active' : 'illustrative'}`}>{policy.status}</span></td><td><button type="button" className="case-rule-toggle" aria-expanded={expanded === policy.policy_id} aria-controls={`rules-${policy.policy_id}`} onClick={() => setExpanded(expanded === policy.policy_id ? '' : policy.policy_id)}><ChevronDown size={15} /> {expanded === policy.policy_id ? 'Hide' : 'View'} rules ({policy.extracted_rules?.rules?.length || 0})</button></td><td><a href={`/underwriting/policies/${encodeURIComponent(policy.policy_id)}/source`} target="_blank" rel="noreferrer"><FileText size={15} /> Original</a></td></tr>{expanded === policy.policy_id && <tr className="case-rule-expansion" id={`rules-${policy.policy_id}`}><td colSpan={6}><div><strong>{policy.policy_name}</strong><p>{policy.extracted_rules?.summary || 'No extracted summary available.'}</p><HealthRateGrid policy={policy} />{policy.extracted_rules?.rules?.length ? <PolicyRulesTable rules={policy.extracted_rules.rules} /> : <p>No rules have been extracted. Review the original source.</p>}</div></td></tr>}</Fragment>)}</tbody></table></div>
+}
