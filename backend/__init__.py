@@ -1,1 +1,0 @@
-"""Knowledge Catalog API backend."""
